@@ -8,7 +8,7 @@ namespace BetterBeastCrest.Patches
     {
         private static void Postfix(HeroController __instance)
         {
-            if (!(Plugin.WarriorCrest1.IsEquipped || Plugin.WarriorCrest2.IsEquipped || Plugin.WarriorCrest3.IsEquipped))
+            if (!Gameplay.WarriorCrest.IsEquipped)
                 return;
 
             int healValue;

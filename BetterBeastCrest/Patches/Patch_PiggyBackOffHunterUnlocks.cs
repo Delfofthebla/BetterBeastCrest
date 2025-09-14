@@ -9,9 +9,15 @@ namespace BetterBeastCrest.Patches
         public static void PostFix(ToolCrest __instance)
         {
             if (__instance == Gameplay.HunterCrest2)
-                Plugin.WarriorCrest2?.Unlock();
+            {
+                BeastCrestModifier.UnlockWarrior2();
+                BeastCrestModifier.AdjustRageDuration();
+            }
             else if (__instance == Gameplay.HunterCrest3)
-                Plugin.WarriorCrest3?.Unlock();
+            {
+                BeastCrestModifier.UnlockWarrior3();
+                BeastCrestModifier.AdjustRageDuration();
+            }
         }
     }
 }
