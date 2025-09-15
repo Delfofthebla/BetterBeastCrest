@@ -3,19 +3,27 @@ using HarmonyLib;
 
 namespace BetterBeastCrest.Patches
 {
-    [HarmonyPatch(typeof(ToolCrest), "Unlock")]
-    public class Patch_PiggyBackOffHunterUnlocks
+    // Harmony was being a baby so I had to write it like this to ensure PatchAll actually picked it up
+    [HarmonyPatch(typeof(ToolCrest))]
+    [HarmonyPatch("Unlock")]
+    public static class Patch_PiggyBackOffHunterUnlocks
     {
-        public static void PostFix(ToolCrest __instance)
+        [HarmonyPostfix]
+        public static void Postfix(ToolCrest __instance)
         {
-            if (__instance == Gameplay.HunterCrest2)
+            if (__instance == Gameplay.HunterCrest3)
+            {
+                BeastCrestModifier.UnlockWarrior3();
+                BeastCrestModifier.AdjustRageDuration();
+            }
+            else if (__instance == Gameplay.HunterCrest2)
             {
                 BeastCrestModifier.UnlockWarrior2();
                 BeastCrestModifier.AdjustRageDuration();
             }
-            else if (__instance == Gameplay.HunterCrest3)
+            else if (__instance == Gameplay.WarriorCrest)
             {
-                BeastCrestModifier.UnlockWarrior3();
+                BeastCrestModifier.ApplyWarrior1Changes();
                 BeastCrestModifier.AdjustRageDuration();
             }
         }

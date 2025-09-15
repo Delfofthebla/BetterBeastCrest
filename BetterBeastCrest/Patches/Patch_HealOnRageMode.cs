@@ -4,7 +4,7 @@ using HarmonyLib;
 namespace BetterBeastCrest.Patches
 {
     [HarmonyPatch(typeof(HeroController), "BindCompleted")]
-    public class Patch_HealOnRageMode
+    public static class Patch_HealOnRageMode
     {
         private static void Postfix(HeroController __instance)
         {
@@ -13,11 +13,11 @@ namespace BetterBeastCrest.Patches
 
             int healValue;
             if (Helpers.IsBeastCrest3Unlocked)
-                healValue = Plugin.ImmediateHealthOnBind3.Value;
+                healValue = Plugin.Crest3.ImmediateHeal;
             else if (Helpers.IsBeastCrest2Unlocked)
-                healValue = Plugin.ImmediateHealthOnBind2.Value;
+                healValue = Plugin.Crest2.ImmediateHeal;
             else
-                healValue = Plugin.ImmediateHealthOnBind1.Value;
+                healValue = Plugin.CrestDefault.ImmediateHeal;
             
             if (healValue > 0)
                 __instance.AddHealth(healValue);

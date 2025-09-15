@@ -6,6 +6,7 @@
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
         <LangVersion>8.0</LangVersion>
+        <Version>1.2.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
