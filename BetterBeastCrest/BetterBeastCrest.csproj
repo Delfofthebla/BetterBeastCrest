@@ -2,11 +2,10 @@
 
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
+        <Version>1.4.0.$([System.DateTime]::Now.ToString("HHmm"))</Version>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <LangVersion>latest</LangVersion>
         <LangVersion>8.0</LangVersion>
-        <Version>1.2.0</Version>
     </PropertyGroup>
 
     <ItemGroup>

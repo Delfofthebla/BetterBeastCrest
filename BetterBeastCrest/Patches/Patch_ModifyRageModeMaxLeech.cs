@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using GlobalSettings;
+using HarmonyLib;
 
 namespace BetterBeastCrest.Patches
 {
@@ -7,12 +8,18 @@ namespace BetterBeastCrest.Patches
     {
         private static void Postfix(ref int __result)
         {
+            int newMax;
             if (Helpers.IsBeastCrest3Unlocked)
-                __result = Plugin.Crest3.MaxLifeLeech;
+                newMax = Plugin.Crest3.MaxLifeLeech;
             else if (Helpers.IsBeastCrest2Unlocked)
-                __result = Plugin.Crest2.MaxLifeLeech;
+                newMax = Plugin.Crest2.MaxLifeLeech;
             else
-                __result = Plugin.CrestDefault.MaxLifeLeech;
+                newMax = Plugin.Crest1.MaxLifeLeech;
+
+            if (Gameplay.MultibindTool.IsEquipped)
+                newMax++;
+            
+            __result = newMax;
         }
     }
 }

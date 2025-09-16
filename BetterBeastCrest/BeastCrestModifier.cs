@@ -119,7 +119,7 @@ namespace BetterBeastCrest
             var slot = new ToolCrest.SlotInfo
             {
                 Type = type,
-                IsLocked = true,
+                IsLocked = Plugin.Crest2.ToolSlotRequiresUnlocking,
                 Position = new Vector2(leftMostSlot.Position.x - 0.45f, leftMostSlot.Position.y + _verticalGapDistance),
                 NavUpIndex = leftMostSlot.NavUpIndex - 1,
                 NavLeftIndex = leftMostSlot.NavLeftIndex - 1,
@@ -153,7 +153,7 @@ namespace BetterBeastCrest
             var slot = new ToolCrest.SlotInfo
             {
                 Type = type,
-                IsLocked = true,
+                IsLocked = Plugin.Crest3.ToolSlotRequiresUnlocking,
                 Position = new Vector2(rightMostSlot.Position.x + 0.45f, rightMostSlot.Position.y + _verticalGapDistance),
                 NavUpIndex = rightMostSlot.NavUpIndex,
                 NavLeftIndex = rightMostSlot.NavLeftIndex + 2,
