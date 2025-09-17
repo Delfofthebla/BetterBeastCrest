@@ -2,12 +2,12 @@
 
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
-        <Version>1.4.0.$([System.DateTime]::Now.ToString("HHmm"))</Version>
+        <Version>1.4.1.$([System.DateTime]::Now.ToString("HHmm"))</Version>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>8.0</LangVersion>
     </PropertyGroup>
-
+    
     <ItemGroup>
       <Reference Include="0Harmony">
         <HintPath>..\lib\0Harmony.dll</HintPath>

@@ -99,8 +99,8 @@ namespace BetterBeastCrest
                 _rageDurationField.SetValue(gameplayInstance, _originalRageDuration * (1f + (Plugin.Crest3.RageDuration / 100f)));
             else if (Helpers.IsBeastCrest2Unlocked && Plugin.Crest2.RageDuration != 0)
                 _rageDurationField.SetValue(gameplayInstance, _originalRageDuration * (1f + (Plugin.Crest2.RageDuration / 100f)));
-            else if (Helpers.IsBeastCrest1Unlocked && Plugin.CrestDefault.RageDuration != 0)
-                _rageDurationField.SetValue(gameplayInstance, _originalRageDuration * (1f + (Plugin.CrestDefault.RageDuration / 100f)));
+            else if (Helpers.IsBeastCrest1Unlocked && Plugin.Crest1.RageDuration != 0)
+                _rageDurationField.SetValue(gameplayInstance, _originalRageDuration * (1f + (Plugin.Crest1.RageDuration / 100f)));
         }
 
         public static void AddWarrior2ToolSlot()

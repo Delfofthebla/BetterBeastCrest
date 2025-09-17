@@ -11,7 +11,7 @@ namespace BetterBeastCrest
     {
         public const string PLUGIN_GUID = "delfofthebla.silksong.betterbeastcrest";
         public const string PLUGIN_NAME = "Better Beast Crest";
-        public const string PLUGIN_VERSION = "1.0.0";
+        public const string PLUGIN_VERSION = "1.4.0";
 
         public static ConfigFile Config;
         public static ManualLogSource Log;
