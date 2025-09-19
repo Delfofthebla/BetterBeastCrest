@@ -2,34 +2,38 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using BetterBeastCrest.Domain;
 using GlobalSettings;
 using HarmonyLib;
 using UnityEngine;
 
-namespace BetterBeastCrest
+namespace BetterBeastCrest.Services
 {
     public static class BeastCrestModifier
     {
+        // General stuff
         private static readonly MethodInfo _getGameplayMethod = typeof(GlobalSettingsBase<Gameplay>).GetMethod("Get", BindingFlags.Static | BindingFlags.NonPublic)!;
         private static readonly FieldInfo _rageDurationField = AccessTools.Field(typeof(Gameplay), "warriorRageDuration");
         private static readonly FieldInfo _slotsField = AccessTools.Field(typeof(ToolCrest), "slots");
+        
         private static readonly float _verticalGapDistance = 1.72f;
         
         private static ToolCrest.SlotInfo[]? _originalWarriorCrestSlots;
         private static bool _hasPatchedRageDuration;
         private static float _originalRageDuration;
 
-        public static void CacheOriginalValuesIfNecessary()
+        public static bool CacheOriginalValuesIfNecessary()
         {
-            if (_originalWarriorCrestSlots == null)
-            {
-                Plugin.Log.LogInfo("[BetterBeastCrest]: Caching Original Beast Crest Slot Values. Default Rage Duration: " + Gameplay.WarriorRageDuration);
-                _originalWarriorCrestSlots = Gameplay.WarriorCrest.Slots.ToArray();
-                _originalRageDuration = Gameplay.WarriorRageDuration;
-            }
+            if (_originalWarriorCrestSlots != null)
+                return false;
+
+            Plugin.Log.LogInfo("[BetterBeastCrest]: Caching Original Beast Crest Slot Values.");
+            _originalWarriorCrestSlots = Gameplay.WarriorCrest.Slots.ToArray();
+            _originalRageDuration = Gameplay.WarriorRageDuration;
+            return true;
         }
 
-        public static void ResetModStateIfNecessary()
+        public static void ResetModStateIfAble()
         {
             if (_originalWarriorCrestSlots != null)
             {
@@ -44,8 +48,17 @@ namespace BetterBeastCrest
             }
         }
 
+        public static void MakeGlobalChanges()
+        {
+            AdjustRageDuration();
+        }
+
         public static void ApplyWarrior1Changes()
         {
+            Plugin.Log.LogInfo("[BetterBeastCrest]: Making Beast Crest Rank 1 Changes");
+            
+            ModifyCenterToolSlotIfNecessary();
+            
             var description = BuildDescription("Rank 1", Plugin.CrestDefault, Plugin.Crest1);
             if (string.IsNullOrWhiteSpace(description))
                 return;
@@ -58,6 +71,7 @@ namespace BetterBeastCrest
     
         public static void UnlockWarrior2()
         {
+            Plugin.Log.LogInfo("[BetterBeastCrest]: Unlocking Beast Crest Rank 2");
             if (Plugin.Crest2.ToolSlotEnabled)
                 AddWarrior2ToolSlot();
             
@@ -73,6 +87,8 @@ namespace BetterBeastCrest
 
         public static void UnlockWarrior3()
         {
+            Plugin.Log.LogInfo("[BetterBeastCrest]: Unlocking Beast Crest Rank 3");
+            
             if (Plugin.Crest3.ToolSlotEnabled)
                 AddWarrior3ToolSlot();
             
@@ -102,8 +118,53 @@ namespace BetterBeastCrest
             else if (Helpers.IsBeastCrest1Unlocked && Plugin.Crest1.RageDuration != 0)
                 _rageDurationField.SetValue(gameplayInstance, _originalRageDuration * (1f + (Plugin.Crest1.RageDuration / 100f)));
         }
+        
+        private static void ModifyCenterToolSlotIfNecessary()
+        {
+            if (!Plugin.Crest1.ToolSlotEnabled)
+                return;
+            
+            var original = Gameplay.WarriorCrest.Slots;
+            var newArray = new ToolCrest.SlotInfo[original.Length];
+            Array.Copy(original, newArray, original.Length);
 
-        public static void AddWarrior2ToolSlot()
+            // Grab our config color
+            var type = Plugin.Crest1.SlotColor;
+
+            for (var i = 0; i < original.Length; i++)
+            {
+                var slot = original[i];
+                if (slot.Type != ToolItemType.Skill)
+                    continue;
+
+                var attackBinding = slot.AttackBinding;
+                // if (type != ToolItemType.Red)
+                //     attackBinding = null;
+                
+                var replacementSlot = new ToolCrest.SlotInfo
+                {
+                    Type = type,
+                    AttackBinding = attackBinding,
+                    IsLocked = false,
+                    Position = slot.Position,
+                    NavUpIndex = slot.NavUpIndex,
+                    NavDownIndex = slot.NavDownIndex,
+                    NavLeftIndex = slot.NavLeftIndex,
+                    NavRightIndex = slot.NavRightIndex,
+                
+                    NavUpFallbackIndex = slot.NavUpFallbackIndex,
+                    NavDownFallbackIndex = slot.NavDownFallbackIndex,
+                    NavLeftFallbackIndex = slot.NavLeftFallbackIndex,
+                    NavRightFallbackIndex = slot.NavRightFallbackIndex,
+                };
+                newArray[i] = replacementSlot;
+            }
+            
+            Plugin.Log.LogInfo($"[BetterBeastCrest]: Modified Beast Crest Rank 1 Center tool slot to {type}");
+            _slotsField.SetValue(Gameplay.WarriorCrest, newArray);
+        }
+
+        private static void AddWarrior2ToolSlot()
         {
             var original = Gameplay.WarriorCrest.Slots;
             var newArray = new ToolCrest.SlotInfo[original.Length + 1];
@@ -137,7 +198,7 @@ namespace BetterBeastCrest
             _slotsField.SetValue(Gameplay.WarriorCrest, newArray);
         }
 
-        public static void AddWarrior3ToolSlot()
+        private static void AddWarrior3ToolSlot()
         {
             var original = Gameplay.WarriorCrest.Slots;
             var newArray = new ToolCrest.SlotInfo[original.Length + 1];

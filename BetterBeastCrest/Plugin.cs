@@ -2,6 +2,7 @@
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using BetterBeastCrest.Domain;
 using HarmonyLib;
 
 namespace BetterBeastCrest
@@ -11,7 +12,7 @@ namespace BetterBeastCrest
     {
         public const string PLUGIN_GUID = "delfofthebla.silksong.betterbeastcrest";
         public const string PLUGIN_NAME = "Better Beast Crest";
-        public const string PLUGIN_VERSION = "1.4.0";
+        public const string PLUGIN_VERSION = "1.5.0";
 
         public static ConfigFile Config;
         public static ManualLogSource Log;
@@ -20,6 +21,8 @@ namespace BetterBeastCrest
         public static CrestStats Crest1;
         public static CrestStats Crest2;
         public static CrestStats Crest3;
+
+        private static ConfigEntry<ToolItemType> CenterToolSlotColor;
         
         private static ConfigEntry<int> ImmediateHealthOnBind1;
         private static ConfigEntry<int> MaximumLifeLeech1;
@@ -45,6 +48,7 @@ namespace BetterBeastCrest
             Logger.LogInfo("[BetterBeastCrest]: Better Beast Crest Loading...");
 
             Config = new ConfigFile(Path.Combine(Paths.ConfigPath, "BetterBeastCrest.cfg"), true);
+            CenterToolSlotColor = Config.Bind("Global", "CenterToolSlotColor", ToolItemType.Skill, "Specify the type of the center most tool slot. It is Skill in the base game, but you can change that here.");
             
             ImmediateHealthOnBind1 = Config.Bind("BeastCrestStage1", "HealOnBind", 1, "Specify the amount of masks you want to restore upon binding with Beast Crest Rank 1. (Separate from the rage lifesteal)");
             MaximumLifeLeech1 = Config.Bind("BeastCrestStage1", "MaximumLifeLeech", 2, "The maximum amount of masks you can restore by attacking after binding for Rank 1. (You can also use negative numbers if you wish to decrease it)");
@@ -54,28 +58,28 @@ namespace BetterBeastCrest
             MaximumLifeLeech2 = Config.Bind("BeastCrestStage2", "MaximumLifeLeech", 2, "The maximum amount of masks you can restore by attacking after binding for Rank 2. (You can also use negative numbers if you wish to decrease it)");
             RageDurationIncrease2 = Config.Bind("BeastCrestStage2", "RageDurationIncrease", 20, "The percentage increase in rage duration for Rank 2. (You can also use negative numbers if you wish to decrease it)");
             EnableNewToolSlot2 = Config.Bind("BeastCrestStage2", "EnableNewToolSlot", true, "Enable the tool slot for this rank.");
-            ToolSlotColor2 = Config.Bind("BeastCrestStage2", "ToolSlotColor", ToolItemType.Blue, "The tool slot color for this rank. ==Only Blue and Yellow are supported==");
             ToolSlotRequireUnlocking2 = Config.Bind("BeastCrestStage2", "ToolSlotRequiresUnlocking", true, "Whether or not to require spending a memory locket ot unluck the slot.");
+            ToolSlotColor2 = Config.Bind("BeastCrestStage2", "ToolSlotColor", ToolItemType.Blue, "The tool slot color for this rank. ==Only Blue and Yellow are supported==");
             
             ImmediateHealthOnBind3 = Config.Bind("BeastCrestStage3", "HealOnBind", 1, "Specify the amount of masks you want to restore upon binding with Beast Crest Rank 3. (Separate from the rage lifesteal)");
             MaximumLifeLeech3 = Config.Bind("BeastCrestStage3", "MaximumLifeLeech", 3, "The maximum amount of masks you can restore by attacking after binding for Rank 3. (You can also use negative numbers if you wish to decrease it)");
             RageDurationIncrease3 = Config.Bind("BeastCrestStage3", "RageDurationIncrease", 20, "The percentage increase in rage duration for Rank 3. (You can also use negative numbers if you wish to decrease it)");
             EnableNewToolSlot3 = Config.Bind("BeastCrestStage3", "EnableNewToolSlot", true, "Enable the tool slot for this rank.");
-            ToolSlotRequireUnlocking2 = Config.Bind("BeastCrestStage3", "ToolSlotRequiresUnlocking", true, "Whether or not to require spending a memory locket ot unluck the slot.");
+            ToolSlotRequireUnlocking3 = Config.Bind("BeastCrestStage3", "ToolSlotRequiresUnlocking", true, "Whether or not to require spending a memory locket ot unluck the slot.");
             ToolSlotColor3 = Config.Bind("BeastCrestStage3", "ToolSlotColor", ToolItemType.Yellow, "The tool slot color for this rank. ==Only Blue and Yellow are supported== It's Yellow by default because 2 blues is VERY strong :)");
             
             var harmony = new Harmony(PLUGIN_GUID);
             harmony.PatchAll();
             
             // Initialize all our crest stats
-            CrestDefault = new CrestStats(0, 3, 0, false, false, default);
+            CrestDefault = new CrestStats(0, 3, 0, false, false, ToolItemType.Skill);
             Crest1 = new CrestStats(
                 ImmediateHealthOnBind1.Value,
                 MaximumLifeLeech1.Value,
                 RageDurationIncrease1.Value,
+                CenterToolSlotColor.Value != ToolItemType.Skill,
                 false,
-                false,
-                default
+                CenterToolSlotColor.Value
             );
             Crest2 = new CrestStats(
                 ImmediateHealthOnBind2.Value,
@@ -96,7 +100,7 @@ namespace BetterBeastCrest
             
             foreach (var patchedMethod in harmony.GetPatchedMethods())
                 Logger.LogInfo($"[BetterBeastCrest]: Patched {patchedMethod.DeclaringType?.FullName}:{patchedMethod}");
-            Logger.LogInfo($"[BetterBeastCrest]: patching done.");
+            Logger.LogInfo("[BetterBeastCrest]: patching done.");
         }
     }
 }

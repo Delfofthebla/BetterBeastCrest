@@ -1,4 +1,4 @@
-﻿namespace BetterBeastCrest
+﻿namespace BetterBeastCrest.Domain
 {
     public class CrestStats
     {

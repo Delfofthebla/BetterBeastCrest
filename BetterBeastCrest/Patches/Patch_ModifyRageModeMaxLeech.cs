@@ -1,4 +1,5 @@
-﻿using GlobalSettings;
+﻿using BetterBeastCrest.Services;
+using GlobalSettings;
 using HarmonyLib;
 
 namespace BetterBeastCrest.Patches

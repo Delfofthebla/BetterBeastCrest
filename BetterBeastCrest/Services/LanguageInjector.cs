@@ -4,7 +4,7 @@ using System.Reflection;
 using HarmonyLib;
 using TeamCherry.Localization;
 
-namespace BetterBeastCrest
+namespace BetterBeastCrest.Services
 {
 public static class LocalizationInjector
 {

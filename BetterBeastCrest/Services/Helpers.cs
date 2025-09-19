@@ -1,6 +1,6 @@
 ﻿using GlobalSettings;
 
-namespace BetterBeastCrest
+namespace BetterBeastCrest.Services
 {
     public class Helpers
     {

@@ -1,4 +1,4 @@
-﻿using GlobalSettings;
+﻿using BetterBeastCrest.Services;
 using HarmonyLib;
 
 namespace BetterBeastCrest.Patches
@@ -9,8 +9,8 @@ namespace BetterBeastCrest.Patches
         [HarmonyPrefix]
         public static void RevertBeforeLoad()
         {
-            BeastCrestModifier.CacheOriginalValuesIfNecessary();
-            BeastCrestModifier.ResetModStateIfNecessary();
+            if (!BeastCrestModifier.CacheOriginalValuesIfNecessary())
+                BeastCrestModifier.ResetModStateIfAble();
         }
         
         [HarmonyPostfix]
@@ -22,8 +22,8 @@ namespace BetterBeastCrest.Patches
                 BeastCrestModifier.UnlockWarrior2();
             if (Helpers.IsBeastCrest3Unlocked)
                 BeastCrestModifier.UnlockWarrior3();
-            
-            BeastCrestModifier.AdjustRageDuration();
+
+            BeastCrestModifier.MakeGlobalChanges();
         }
     }
 }
