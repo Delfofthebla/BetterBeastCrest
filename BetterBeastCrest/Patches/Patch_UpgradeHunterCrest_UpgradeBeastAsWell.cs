@@ -7,7 +7,7 @@ namespace BetterBeastCrest.Patches
     // Harmony was being a baby so I had to write it like this to ensure PatchAll actually picked it up
     [HarmonyPatch(typeof(ToolCrest))]
     [HarmonyPatch("Unlock")]
-    public static class Patch_PiggyBackOffHunterUnlocks
+    public static class Patch_UpgradeHunterCrest_UpgradeBeastAsWell
     {
         [HarmonyPostfix]
         public static void Postfix(ToolCrest __instance)

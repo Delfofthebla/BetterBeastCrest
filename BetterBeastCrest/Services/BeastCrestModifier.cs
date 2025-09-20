@@ -12,9 +12,22 @@ namespace BetterBeastCrest.Services
     public static class BeastCrestModifier
     {
         // General stuff
+        private static Gameplay _gameplayInstance;
+        
         private static readonly MethodInfo _getGameplayMethod = typeof(GlobalSettingsBase<Gameplay>).GetMethod("Get", BindingFlags.Static | BindingFlags.NonPublic)!;
         private static readonly FieldInfo _rageDurationField = AccessTools.Field(typeof(Gameplay), "warriorRageDuration");
         private static readonly FieldInfo _slotsField = AccessTools.Field(typeof(ToolCrest), "slots");
+        
+        // Down attack config stuff
+        private static readonly FieldInfo _heroAnimOverrideLibField = AccessTools.Field(typeof(HeroControllerConfig), "heroAnimOverrideLib");
+        private static readonly FieldInfo _downSlashTypeField = AccessTools.Field(typeof(HeroControllerConfig), "downSlashType");
+        private static readonly FieldInfo _downSlashEventField = AccessTools.Field(typeof(HeroControllerConfig), "downSlashEvent");
+        private static readonly FieldInfo _downspikeAnticTimeField = AccessTools.Field(typeof(HeroControllerConfig), "downspikeAnticTime");
+        private static readonly FieldInfo _downspikeTimeField = AccessTools.Field(typeof(HeroControllerConfig), "downspikeTime");
+        private static readonly FieldInfo _downspikeSpeedField = AccessTools.Field(typeof(HeroControllerConfig), "downspikeSpeed");
+        private static readonly FieldInfo _downspikeRecoveryTimeField = AccessTools.Field(typeof(HeroControllerConfig), "downspikeRecoveryTime");
+        private static readonly FieldInfo _downspikeBurstEffectField = AccessTools.Field(typeof(HeroControllerConfig), "downspikeBurstEffect");
+        private static readonly FieldInfo _downspikeThrustsField = AccessTools.Field(typeof(HeroControllerConfig), "downspikeThrusts");
         
         private static readonly float _verticalGapDistance = 1.72f;
         
@@ -27,7 +40,7 @@ namespace BetterBeastCrest.Services
             if (_originalWarriorCrestSlots != null)
                 return false;
 
-            Plugin.Log.LogInfo("[BetterBeastCrest]: Caching Original Beast Crest Slot Values.");
+            Plugin.LogInfo("Caching Original Beast Crest Slot Values.");
             _originalWarriorCrestSlots = Gameplay.WarriorCrest.Slots.ToArray();
             _originalRageDuration = Gameplay.WarriorRageDuration;
             return true;
@@ -37,29 +50,30 @@ namespace BetterBeastCrest.Services
         {
             if (_originalWarriorCrestSlots != null)
             {
-                Plugin.Log.LogInfo("[BetterBeastCrest]: Reverting to Original Beast Crest Slot Values"); 
+                Plugin.LogInfo("Reverting to Original Beast Crest Slot Values"); 
                 _slotsField.SetValue(Gameplay.WarriorCrest, _originalWarriorCrestSlots.ToArray());
             }
 
             if (!Mathf.Approximately(_originalRageDuration, Gameplay.WarriorRageDuration))
             {
-                Plugin.Log.LogInfo("[BetterBeastCrest]: Reverting Rage Duration to Default Value of: " + _originalRageDuration + " from: " + Gameplay.WarriorRageDuration);
+                Plugin.LogInfo("Reverting Rage Duration to Default Value of: " + _originalRageDuration + " from: " + Gameplay.WarriorRageDuration);
                 _rageDurationField.SetValue(GetGameplayInstance(), _originalRageDuration);
             }
         }
 
         public static void MakeGlobalChanges()
         {
+            ModifyDownAttackConfig();
             AdjustRageDuration();
         }
 
         public static void ApplyWarrior1Changes()
         {
-            Plugin.Log.LogInfo("[BetterBeastCrest]: Making Beast Crest Rank 1 Changes");
+            Plugin.LogInfo("Making Beast Crest Rank 1 Changes");
             
             ModifyCenterToolSlotIfNecessary();
             
-            var description = BuildDescription("Rank 1", Plugin.CrestDefault, Plugin.Crest1);
+            var description = BuildDescription("Rank 1", Plugin.Config.CrestDefault, Plugin.Config.Crest1);
             if (string.IsNullOrWhiteSpace(description))
                 return;
             
@@ -71,11 +85,11 @@ namespace BetterBeastCrest.Services
     
         public static void UnlockWarrior2()
         {
-            Plugin.Log.LogInfo("[BetterBeastCrest]: Unlocking Beast Crest Rank 2");
-            if (Plugin.Crest2.ToolSlotEnabled)
+            Plugin.LogInfo("Unlocking Beast Crest Rank 2");
+            if (Plugin.Config.Crest2.ToolSlotEnabled)
                 AddWarrior2ToolSlot();
             
-            var description = BuildDescription("Rank 2", Plugin.Crest1, Plugin.Crest2);
+            var description = BuildDescription("Rank 2", Plugin.Config.Crest1, Plugin.Config.Crest2);
             if (string.IsNullOrWhiteSpace(description))
                 return;
             
@@ -87,12 +101,12 @@ namespace BetterBeastCrest.Services
 
         public static void UnlockWarrior3()
         {
-            Plugin.Log.LogInfo("[BetterBeastCrest]: Unlocking Beast Crest Rank 3");
+            Plugin.LogInfo("Unlocking Beast Crest Rank 3");
             
-            if (Plugin.Crest3.ToolSlotEnabled)
+            if (Plugin.Config.Crest3.ToolSlotEnabled)
                 AddWarrior3ToolSlot();
             
-            var description = BuildDescription("Rank 3", Plugin.Crest2, Plugin.Crest3);
+            var description = BuildDescription("Rank 3", Plugin.Config.Crest2, Plugin.Config.Crest3);
             if (string.IsNullOrWhiteSpace(description))
                 return;
             
@@ -111,17 +125,81 @@ namespace BetterBeastCrest.Services
             }
             
             var gameplayInstance = GetGameplayInstance();
-            if (Helpers.IsBeastCrest3Unlocked && Plugin.Crest3.RageDuration != 0)
-                _rageDurationField.SetValue(gameplayInstance, _originalRageDuration * (1f + (Plugin.Crest3.RageDuration / 100f)));
-            else if (Helpers.IsBeastCrest2Unlocked && Plugin.Crest2.RageDuration != 0)
-                _rageDurationField.SetValue(gameplayInstance, _originalRageDuration * (1f + (Plugin.Crest2.RageDuration / 100f)));
-            else if (Helpers.IsBeastCrest1Unlocked && Plugin.Crest1.RageDuration != 0)
-                _rageDurationField.SetValue(gameplayInstance, _originalRageDuration * (1f + (Plugin.Crest1.RageDuration / 100f)));
+            if (Helpers.IsBeastCrest3Unlocked && Plugin.Config.Crest3.RageDuration != 0)
+                _rageDurationField.SetValue(gameplayInstance, _originalRageDuration * (1f + (Plugin.Config.Crest3.RageDuration / 100f)));
+            else if (Helpers.IsBeastCrest2Unlocked && Plugin.Config.Crest2.RageDuration != 0)
+                _rageDurationField.SetValue(gameplayInstance, _originalRageDuration * (1f + (Plugin.Config.Crest2.RageDuration / 100f)));
+            else if (Helpers.IsBeastCrest1Unlocked && Plugin.Config.Crest1.RageDuration != 0)
+                _rageDurationField.SetValue(gameplayInstance, _originalRageDuration * (1f + (Plugin.Config.Crest1.RageDuration / 100f)));
+        }
+        
+        private static void ModifyDownAttackConfig()
+        {
+            if (Plugin.Config.DownAttackType == CrestType.Beast)
+                return;
+            
+            var desiredCrestConfig = Plugin.Config.DownAttackType switch
+            {
+                CrestType.Hunter => Gameplay.HunterCrest.HeroConfig,
+                CrestType.Reaper => Gameplay.ReaperCrest.HeroConfig,
+                CrestType.Wanderer => Gameplay.WandererCrest.HeroConfig,
+                CrestType.Beast => Gameplay.WarriorCrest.HeroConfig,
+                CrestType.Witch => Gameplay.WitchCrest.HeroConfig,
+                CrestType.Architect => Gameplay.ToolmasterCrest.HeroConfig,
+                CrestType.Shaman => Gameplay.SpellCrest.HeroConfig,
+                _ => throw new ArgumentOutOfRangeException()
+            };
+            
+            if (Plugin.Config.DownAttackType == CrestType.Hunter)
+            {
+                if (Gameplay.HunterCrest3.IsUnlocked && Gameplay.HunterCrest3.HeroConfig != null)
+                    desiredCrestConfig = Gameplay.HunterCrest3.HeroConfig;
+                else if (Gameplay.HunterCrest2.IsUnlocked && Gameplay.HunterCrest2.HeroConfig != null)
+                    desiredCrestConfig = Gameplay.HunterCrest2.HeroConfig;
+                else if (desiredCrestConfig == null) // I have no fucking idea dude
+                    desiredCrestConfig = Gameplay.HunterCrest.HeroConfig ?? Gameplay.HunterCrest2.HeroConfig ?? Gameplay.HunterCrest3.HeroConfig;
+            }
+            
+            Plugin.LogInfo("Desired Config: " + desiredCrestConfig);
+        
+            var beastCrestConfig = Gameplay.WarriorCrest.HeroConfig;
+            
+            // Copy over the down attack animations without nuking the rest
+            
+            var desiredAnimLib = _heroAnimOverrideLibField.GetValue(desiredCrestConfig) as tk2dSpriteAnimation;
+            var beastAnimLib = _heroAnimOverrideLibField.GetValue(beastCrestConfig) as tk2dSpriteAnimation;
+            if (desiredAnimLib != null && beastAnimLib == null)
+            {
+                Plugin.LogInfo("Desired Anim Swap is not null but Beast Crest Anims ARE null");
+                _heroAnimOverrideLibField.SetValue(beastCrestConfig, desiredAnimLib);
+            }
+            else if (desiredAnimLib == null && beastAnimLib != null)
+            {
+                Plugin.LogInfo("Desired Anim Swap IS null but Beast Crest Anims are NOT null");
+                _heroAnimOverrideLibField.SetValue(beastCrestConfig, null);
+            }
+            else
+            {
+                Plugin.LogInfo("Neither the desired Anim Swap or the Beast Crest Anims are null");
+            }
+
+            Plugin.LogInfo("Modifying anims and down attack variables");
+            AnimationUtils.MergeDownAttackClips(desiredAnimLib!, beastAnimLib!);
+    
+            // Modify down attack values
+            _downSlashTypeField.SetValue(beastCrestConfig, desiredCrestConfig.DownSlashType);
+            _downSlashEventField.SetValue(beastCrestConfig, desiredCrestConfig.DownSlashEvent);
+            _downspikeAnticTimeField.SetValue(beastCrestConfig, desiredCrestConfig.DownSpikeAnticTime);
+            _downspikeTimeField.SetValue(beastCrestConfig, desiredCrestConfig.DownSpikeTime);
+            _downspikeSpeedField.SetValue(beastCrestConfig, desiredCrestConfig.DownspikeSpeed);
+            _downspikeRecoveryTimeField.SetValue(beastCrestConfig, desiredCrestConfig.DownspikeRecoveryTime);
+            _downspikeBurstEffectField.SetValue(beastCrestConfig, desiredCrestConfig.DownspikeBurstEffect);
+            _downspikeThrustsField.SetValue(beastCrestConfig, desiredCrestConfig.DownspikeThrusts);
         }
         
         private static void ModifyCenterToolSlotIfNecessary()
         {
-            if (!Plugin.Crest1.ToolSlotEnabled)
+            if (!Plugin.Config.Crest1.ToolSlotEnabled)
                 return;
             
             var original = Gameplay.WarriorCrest.Slots;
@@ -129,7 +207,7 @@ namespace BetterBeastCrest.Services
             Array.Copy(original, newArray, original.Length);
 
             // Grab our config color
-            var type = Plugin.Crest1.SlotColor;
+            var type = Plugin.Config.Crest1.SlotColor;
 
             for (var i = 0; i < original.Length; i++)
             {
@@ -160,7 +238,7 @@ namespace BetterBeastCrest.Services
                 newArray[i] = replacementSlot;
             }
             
-            Plugin.Log.LogInfo($"[BetterBeastCrest]: Modified Beast Crest Rank 1 Center tool slot to {type}");
+            Plugin.LogInfo($"Modified Beast Crest Rank 1 Center tool slot to {type}");
             _slotsField.SetValue(Gameplay.WarriorCrest, newArray);
         }
 
@@ -171,7 +249,7 @@ namespace BetterBeastCrest.Services
             Array.Copy(original, newArray, original.Length);
 
             // Grab our config color, but ensure that it is blue or yellow.
-            var type = Plugin.Crest2.SlotColor;
+            var type = Plugin.Config.Crest2.SlotColor;
             if (type != ToolItemType.Yellow && type != ToolItemType.Blue)
                 type = ToolItemType.Blue;
             
@@ -180,7 +258,7 @@ namespace BetterBeastCrest.Services
             var slot = new ToolCrest.SlotInfo
             {
                 Type = type,
-                IsLocked = Plugin.Crest2.ToolSlotRequiresUnlocking,
+                IsLocked = Plugin.Config.Crest2.ToolSlotRequiresUnlocking,
                 Position = new Vector2(leftMostSlot.Position.x - 0.45f, leftMostSlot.Position.y + _verticalGapDistance),
                 NavUpIndex = leftMostSlot.NavUpIndex - 1,
                 NavLeftIndex = leftMostSlot.NavLeftIndex - 1,
@@ -194,7 +272,7 @@ namespace BetterBeastCrest.Services
             };
             newArray[original.Length] = slot;
 
-            Plugin.Log.LogInfo($"[BetterBeastCrest]: Added Rank 2 {type} Slot to Beast Crest");
+            Plugin.LogInfo($"Added Rank 2 {type} Slot to Beast Crest");
             _slotsField.SetValue(Gameplay.WarriorCrest, newArray);
         }
 
@@ -205,7 +283,7 @@ namespace BetterBeastCrest.Services
             Array.Copy(original, newArray, original.Length);
             
             // Grab our config color, but ensure that it is blue or yellow.
-            var type = Plugin.Crest3.SlotColor;
+            var type = Plugin.Config.Crest3.SlotColor;
             if (type != ToolItemType.Yellow && type != ToolItemType.Blue)
                 type = ToolItemType.Yellow;
 
@@ -214,7 +292,7 @@ namespace BetterBeastCrest.Services
             var slot = new ToolCrest.SlotInfo
             {
                 Type = type,
-                IsLocked = Plugin.Crest3.ToolSlotRequiresUnlocking,
+                IsLocked = Plugin.Config.Crest3.ToolSlotRequiresUnlocking,
                 Position = new Vector2(rightMostSlot.Position.x + 0.45f, rightMostSlot.Position.y + _verticalGapDistance),
                 NavUpIndex = rightMostSlot.NavUpIndex,
                 NavLeftIndex = rightMostSlot.NavLeftIndex + 2,
@@ -228,7 +306,7 @@ namespace BetterBeastCrest.Services
             };
             newArray[original.Length] = slot;
 
-            Plugin.Log.LogInfo($"[BetterBeastCrest]: Added Rank 3 {type} Slot to Beast Crest");
+            Plugin.LogInfo($"Added Rank 3 {type} Slot to Beast Crest");
             _slotsField.SetValue(Gameplay.WarriorCrest, newArray);
         }
 
@@ -259,7 +337,12 @@ namespace BetterBeastCrest.Services
             description += ".";
             return description;
         }
-        
-        private static Gameplay GetGameplayInstance() => (Gameplay) _getGameplayMethod.Invoke(null, new object[] {"Global Gameplay Settings"});
+
+        private static Gameplay GetGameplayInstance()
+        {
+            if (_gameplayInstance == null)
+                _gameplayInstance = (Gameplay) _getGameplayMethod.Invoke(null, new object[] {"Global Gameplay Settings"});
+            return _gameplayInstance;
+        }
     }
 }

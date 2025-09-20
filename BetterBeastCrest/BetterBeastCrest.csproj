@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
-        <Version>1.5.0.$([System.DateTime]::Now.ToString("HHmm"))</Version>
+        <Version>2.0.0.$([System.DateTime]::Now.ToString("HHmm"))</Version>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>8.0</LangVersion>
@@ -18,8 +18,17 @@
       <Reference Include="BepInEx">
         <HintPath>..\lib\BepInEx.dll</HintPath>
       </Reference>
+<!--      <Reference Include="PlayMaker">-->
+<!--        <HintPath>..\lib\PlayMaker.dll</HintPath>-->
+<!--      </Reference>-->
       <Reference Include="TeamCherry.Localization">
         <HintPath>..\lib\TeamCherry.Localization.dll</HintPath>
+      </Reference>
+<!--      <Reference Include="TeamCherry.SharedUtils">-->
+<!--        <HintPath>..\lib\TeamCherry.SharedUtils.dll</HintPath>-->
+<!--      </Reference>-->
+      <Reference Include="TeamCherry.TK2D">
+        <HintPath>..\lib\TeamCherry.TK2D.dll</HintPath>
       </Reference>
       <Reference Include="UnityEngine">
         <HintPath>..\lib\UnityEngine.dll</HintPath>
