@@ -10,6 +10,7 @@ namespace BetterBeastCrest.Patches
         public static void RevertBeforeLoad()
         {
             Plugin.Config.ReloadConfig();
+            Plugin.HasPatchedDownAir = false;
             if (!BeastCrestModifier.CacheOriginalValuesIfNecessary())
                 BeastCrestModifier.ResetModStateIfAble();
         }

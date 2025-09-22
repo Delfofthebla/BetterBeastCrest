@@ -1,6 +1,4 @@
-﻿using System.IO;
-using BepInEx;
-using BepInEx.Configuration;
+﻿using BepInEx;
 using BepInEx.Logging;
 using BetterBeastCrest.Domain;
 using HarmonyLib;
@@ -13,14 +11,15 @@ namespace BetterBeastCrest
         public const string PLUGIN_GUID = "delfofthebla.silksong.betterbeastcrest";
         public const string PLUGIN_NAME = "Better Beast Crest";
         public const string PLUGIN_VERSION = "2.0.0";
-
+        
         public static ManualLogSource Log;
         public static ModConfig Config;
+        public static bool HasPatchedDownAir = false;
 
         public void Awake()
         {
             Log = Logger;
-            LogInfo("Better Beast Crest Loading...");
+            Log.LogInfo("Better Beast Crest Loading...");
 
             Config = new ModConfig();
 
@@ -28,10 +27,8 @@ namespace BetterBeastCrest
             harmony.PatchAll();
 
             foreach (var patchedMethod in harmony.GetPatchedMethods())
-                LogInfo($"Patched {patchedMethod.DeclaringType?.FullName}:{patchedMethod}");
-            LogInfo("patching done.");
+                Log.LogInfo($"Patched {patchedMethod.DeclaringType?.FullName}:{patchedMethod}");
+            Log.LogInfo("patching done.");
         }
-        
-        public static void LogInfo(string msg) => Log.LogInfo("[BetterBeastCrest]: " + msg);
     }
 }
