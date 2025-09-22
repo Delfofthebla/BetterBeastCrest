@@ -50,11 +50,19 @@ namespace BetterBeastCrest.Domain
 
         public ModConfig()
         {
-            _config = new ConfigFile(Path.Combine(Paths.ConfigPath, "BetterBeastCrest.cfg"), true);
+            var configPath = Path.Combine(Paths.ConfigPath, "BetterBeastCrest.cfg");
+            var isNewConfig = !File.Exists(configPath);
             
+            _config = new ConfigFile(configPath, true);
             LoadConfig();
-            MigrateIfNeeded();
-            _configVersion = _config.Bind("Global", "ConfigVersion", CURRENT_CONFIG_VERSION, "Internal config version for migration purposes");
+            
+            if (!isNewConfig)
+                MigrateIfNeeded();
+            else
+            {
+                Plugin.Log.LogInfo("Detected No Config, Generating new one.");
+                _configVersion = _config.Bind("Global", "ConfigVersion", CURRENT_CONFIG_VERSION, "Internal config version for migration purposes");
+            }
             
             BuildCrestStats();
         }
@@ -81,26 +89,24 @@ namespace BetterBeastCrest.Domain
             _topRightToolSlotColor = _config.Bind("Global", "TopRightToolSlot_Color", ToolItemType.Yellow, "The tool slot color for this rank. ==Only Blue and Yellow are supported==");
             
             _immediateHealthOnBind1 = _config.Bind("BeastCrestStage1", "HealOnBind", 1, "Specify the amount of masks you want to restore upon binding with Beast Crest Rank 1. (Separate from the rage lifesteal)");
-            _maximumLifeLeech1 = _config.Bind("BeastCrestStage1", "MaximumLifeLeech", 2, "The maximum amount of masks you can restore by attacking after binding for Rank 1. (You can also use negative numbers if you wish to decrease it)");
+            _maximumLifeLeech1 = _config.Bind("BeastCrestStage1", "MaximumLifeLeech", 2, "The maximum amount of masks you can restore by attacking after binding for Rank 1.");
             _rageDurationIncrease1 = _config.Bind("BeastCrestStage1", "RageDurationIncrease", 0, "The percentage increase in rage duration for Rank 1. (You can also use negative numbers if you wish to decrease it)");
             
             _immediateHealthOnBind2 = _config.Bind("BeastCrestStage2", "HealOnBind", 1, "Specify the amount of masks you want to restore upon binding with Beast Crest Rank 2. (Separate from the rage lifesteal)");
-            _maximumLifeLeech2 = _config.Bind("BeastCrestStage2", "MaximumLifeLeech", 2, "The maximum amount of masks you can restore by attacking after binding for Rank 2. (You can also use negative numbers if you wish to decrease it)");
+            _maximumLifeLeech2 = _config.Bind("BeastCrestStage2", "MaximumLifeLeech", 2, "The maximum amount of masks you can restore by attacking after binding for Rank 2.");
             _rageDurationIncrease2 = _config.Bind("BeastCrestStage2", "RageDurationIncrease", 20, "The percentage increase in rage duration for Rank 2. (You can also use negative numbers if you wish to decrease it)");
             
             _immediateHealthOnBind3 = _config.Bind("BeastCrestStage3", "HealOnBind", 1, "Specify the amount of masks you want to restore upon binding with Beast Crest Rank 3. (Separate from the rage lifesteal)");
-            _maximumLifeLeech3 = _config.Bind("BeastCrestStage3", "MaximumLifeLeech", 3, "The maximum amount of masks you can restore by attacking after binding for Rank 3. (You can also use negative numbers if you wish to decrease it)");
+            _maximumLifeLeech3 = _config.Bind("BeastCrestStage3", "MaximumLifeLeech", 3, "The maximum amount of masks you can restore by attacking after binding for Rank 3.");
             _rageDurationIncrease3 = _config.Bind("BeastCrestStage3", "RageDurationIncrease", 20, "The percentage increase in rage duration for Rank 3. (You can also use negative numbers if you wish to decrease it)");
         }
 
         private void MigrateIfNeeded()
         {
-            var existingVersion = 1;
-            var versionKey = new ConfigDefinition("Global", "ConfigVersion");
-            if (_config.TryGetEntry<int>(versionKey, out var versionEntry))
-                existingVersion = versionEntry.Value;
-
+            _configVersion = _config.Bind("Global", "ConfigVersion", 1, "Internal config version for migration purposes");
+            var existingVersion = _configVersion.Value;
             Plugin.Log.LogInfo("Detected Config Version: " + existingVersion);
+            
             if (existingVersion < CURRENT_CONFIG_VERSION)
             {
                 Plugin.Log.LogInfo($"Migrating config from version {existingVersion} to {CURRENT_CONFIG_VERSION}");
@@ -117,7 +123,6 @@ namespace BetterBeastCrest.Domain
                 MigrateToolSlot("BeastCrestStage3", ExtraToolSlotPosition.TopRight);
             }
 
-            _configVersion = _config.Bind("Global", "ConfigVersion", CURRENT_CONFIG_VERSION, "Internal config version for migration purposes");
             _configVersion.Value = CURRENT_CONFIG_VERSION;
             
             _config.Save();

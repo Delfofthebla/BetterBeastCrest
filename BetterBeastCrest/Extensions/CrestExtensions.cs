@@ -28,11 +28,7 @@ namespace BetterBeastCrest.Extensions
             return Aliases.TryGetValue(crest, out var aliases) && aliases.Any(alias => string.Equals(alias, name, StringComparison.OrdinalIgnoreCase));
         }
         
-        public static HeroController.ConfigGroup? ForCrest(
-            this IEnumerable<HeroController.ConfigGroup> groups,
-            CrestType crest)
-        {
-            return groups.FirstOrDefault(g => g?.ActiveRoot != null && crest.Matches(g.ActiveRoot.name));
-        }
+        public static HeroController.ConfigGroup? ForCrest(this IEnumerable<HeroController.ConfigGroup> groups, CrestType crest)
+            => groups.FirstOrDefault(g => g?.ActiveRoot != null && crest.Matches(g.ActiveRoot.name));
     }
 }
