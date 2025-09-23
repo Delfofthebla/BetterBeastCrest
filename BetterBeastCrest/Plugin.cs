@@ -10,11 +10,10 @@ namespace BetterBeastCrest
     {
         public const string PLUGIN_GUID = "delfofthebla.silksong.betterbeastcrest";
         public const string PLUGIN_NAME = "Better Beast Crest";
-        public const string PLUGIN_VERSION = "2.0.1";
+        public const string PLUGIN_VERSION = "2.0.2";
         
         public static ManualLogSource Log;
         public static ModConfig Config;
-        public static bool HasPatchedDownAir = false;
 
         public void Awake()
         {

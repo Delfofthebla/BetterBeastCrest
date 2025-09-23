@@ -2,8 +2,8 @@
 {
     public enum CrestType
     {
+        Hunter = 0,
         Naked,
-        Hunter,
         Reaper,
         Wanderer, 
         Beast,

@@ -19,7 +19,15 @@ namespace BetterBeastCrest.Extensions
             { CrestType.Architect, CrestAliases.Architect},
             { CrestType.Shaman, CrestAliases.Shaman}
         };
-        
+
+        public static CrestType? ToCrest(this string? alias)
+        {
+            KeyValuePair<CrestType, string[]>? crestAliases = Aliases
+                .FirstOrDefault(kvp => kvp.Value.Any(potentialAlias => potentialAlias.Equals(alias, StringComparison.OrdinalIgnoreCase)));
+            
+            return crestAliases?.Key;
+        }
+
         public static bool Matches(this CrestType crest, string? name)
         {
             if (string.IsNullOrEmpty(name))
