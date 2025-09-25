@@ -7,7 +7,8 @@ namespace BetterBeastCrest.Patches
     [HarmonyPatch(typeof(HeroController), "BindCompleted")]
     public static class Patch_BindCompleted_ApplyHealing
     {
-        private static void Postfix(HeroController __instance)
+        [HarmonyPostfix]
+        private static void ModifyBind(HeroController __instance)
         {
             if (!Gameplay.WarriorCrest.IsEquipped)
                 return;
@@ -19,7 +20,7 @@ namespace BetterBeastCrest.Patches
                 healValue = Plugin.Config.Crest2.ImmediateHeal;
             else
                 healValue = Plugin.Config.Crest1.ImmediateHeal;
-            
+
             if (healValue > 0)
                 __instance.AddHealth(healValue);
         }

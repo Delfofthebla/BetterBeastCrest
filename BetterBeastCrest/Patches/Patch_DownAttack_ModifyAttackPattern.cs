@@ -4,12 +4,11 @@ using HarmonyLib;
 
 namespace BetterBeastCrest.Patches
 {
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(HeroController), "DownAttack")]
     public static class Patch_DownAttack_ModifyAttackPattern
     {
         [HarmonyPrefix]
-        [HarmonyPatch(typeof(HeroController), "DownAttack")]
-        public static void DownAttackPrefix(HeroController __instance, ref bool isSlashing)
+        public static void ModifyAttackPattern(HeroController __instance, ref bool isSlashing)
         {
             if (!Gameplay.WarriorCrest.IsEquipped)
                 return;

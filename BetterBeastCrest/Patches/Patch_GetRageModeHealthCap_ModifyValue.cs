@@ -7,7 +7,8 @@ namespace BetterBeastCrest.Patches
     [HarmonyPatch(typeof(HeroController), "GetRageModeHealCap")]
     public static class Patch_GetRageModeHealthCap_ModifyValue
     {
-        private static void Postfix(ref int __result)
+        [HarmonyPostfix]
+        private static void ModifyRageHealCap(ref int __result)
         {
             int newMax;
             if (Helpers.IsBeastCrest3Unlocked)

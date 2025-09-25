@@ -5,12 +5,11 @@ using HarmonyLib;
 
 namespace BetterBeastCrest.Patches
 {
-    [HarmonyPatch(typeof(ToolItemManager))]
-    public class Patch_OnCrestChange_IsDownAttackPatched
+    [HarmonyPatch(typeof(ToolItemManager), "SetEquippedCrest")]
+    public class Patch_OnCrestChange_RevertDownAttackPatch
     {
         [HarmonyPostfix]
-        [HarmonyPatch(typeof(ToolItemManager), "SetEquippedCrest")]
-        public static void ResetIsDownAttackPatched(ToolItemManager __instance, ref string crestId)
+        public static void RevertDownAttackPatchIfNecessary(ToolItemManager __instance, ref string crestId)
         {
             var equippedCrest = crestId.ToCrest();
             if (equippedCrest == CrestType.Beast)
