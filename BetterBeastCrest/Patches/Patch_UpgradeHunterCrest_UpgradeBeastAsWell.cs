@@ -12,17 +12,17 @@ namespace BetterBeastCrest.Patches
         {
             if (__instance == Gameplay.HunterCrest3)
             {
-                BeastCrestModifier.UnlockWarrior3();
+                BeastCrestModifier.UnlockRank3();
                 BeastCrestModifier.AdjustRageDuration();
             }
             else if (__instance == Gameplay.HunterCrest2)
             {
-                BeastCrestModifier.UnlockWarrior2();
+                BeastCrestModifier.UnlockRank2();
                 BeastCrestModifier.AdjustRageDuration();
             }
             else if (__instance == Gameplay.WarriorCrest)
             {
-                BeastCrestModifier.ApplyWarrior1Changes();
+                BeastCrestModifier.ApplyRank1Changes();
                 BeastCrestModifier.AdjustRageDuration();
             }
         }

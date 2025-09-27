@@ -53,25 +53,24 @@ namespace BetterBeastCrest.Services
             AdjustRageDuration();
         }
 
-        public static void ApplyWarrior1Changes()
+        public static void ApplyRank1Changes()
         {
             Plugin.Log.LogInfo("Making Beast Crest Rank 1 Changes");
 
             ModifyCenterToolSlotIfNecessary();
+            AddExtraToolSlotsIfNecessary(Plugin.Config.Crest1.ExtraToolSlots);
 
             var description = BuildDescription("Rank 1", Plugin.Config.CrestDefault, Plugin.Config.Crest1);
             if (string.IsNullOrWhiteSpace(description))
                 return;
 
-            LocalizationInjector.Append(Gameplay.WarriorCrest.Description,
-                description);
+            LocalizationInjector.Append(Gameplay.WarriorCrest.Description, description);
         }
 
-        public static void UnlockWarrior2()
+        public static void UnlockRank2()
         {
             Plugin.Log.LogInfo("Unlocking Beast Crest Rank 2");
-            foreach (var slot in Plugin.Config.Crest2.ExtraToolSlots)
-                AddToolSlot(slot);
+            AddExtraToolSlotsIfNecessary(Plugin.Config.Crest2.ExtraToolSlots);
 
             var description = BuildDescription("Rank 2", Plugin.Config.Crest1, Plugin.Config.Crest2);
             if (string.IsNullOrWhiteSpace(description))
@@ -80,11 +79,10 @@ namespace BetterBeastCrest.Services
             LocalizationInjector.Append(Gameplay.WarriorCrest.Description, description);
         }
 
-        public static void UnlockWarrior3()
+        public static void UnlockRank3()
         {
             Plugin.Log.LogInfo("Unlocking Beast Crest Rank 3");
-            foreach (var slot in Plugin.Config.Crest3.ExtraToolSlots)
-                AddToolSlot(slot);
+            AddExtraToolSlotsIfNecessary(Plugin.Config.Crest3.ExtraToolSlots);
 
             var description = BuildDescription("Rank 3", Plugin.Config.Crest2, Plugin.Config.Crest3);
             if (string.IsNullOrWhiteSpace(description))
@@ -140,7 +138,7 @@ namespace BetterBeastCrest.Services
                     NavUpFallbackIndex = slot.NavUpFallbackIndex,
                     NavDownFallbackIndex = slot.NavDownFallbackIndex,
                     NavLeftFallbackIndex = slot.NavLeftFallbackIndex,
-                    NavRightFallbackIndex = slot.NavRightFallbackIndex,
+                    NavRightFallbackIndex = slot.NavRightFallbackIndex
                 };
                 newArray[i] = replacementSlot;
             }
@@ -149,6 +147,18 @@ namespace BetterBeastCrest.Services
             _slotsField.SetValue(Gameplay.WarriorCrest, newArray);
         }
 
+        private static void AddExtraToolSlotsIfNecessary(IReadOnlyList<ExtraToolSlot> extraSlots)
+        {
+            if (!extraSlots.Any())
+                return;
+
+            foreach (var slot in extraSlots)
+                AddToolSlot(slot);
+
+            var fixedSlots = ToolSlotNavigationHelper.ToFixedNavigation(Gameplay.WarriorCrest.Slots);
+            _slotsField.SetValue(Gameplay.WarriorCrest, fixedSlots);
+        }
+        
         private static void AddToolSlot(ExtraToolSlot extraToolSlot)
         {
             if (extraToolSlot.Position == ExtraToolSlotPosition.TopLeft)
@@ -174,16 +184,7 @@ namespace BetterBeastCrest.Services
             {
                 Type = type,
                 IsLocked = extraSlot.RequiresUnlocking,
-                Position = new Vector2(leftMostSlot.Position.x - 0.45f, leftMostSlot.Position.y + _verticalGapDistance),
-                NavUpIndex = leftMostSlot.NavUpIndex - 1,
-                NavLeftIndex = leftMostSlot.NavLeftIndex - 1,
-                NavRightIndex = leftMostSlot.NavRightIndex + 2,
-
-                // These appear to always be -1 for all other tool slots so we will do the same
-                NavUpFallbackIndex = -1,
-                NavLeftFallbackIndex = -1,
-                NavRightFallbackIndex = -1,
-                NavDownFallbackIndex = -1
+                Position = new Vector2(leftMostSlot.Position.x - 0.45f, leftMostSlot.Position.y + _verticalGapDistance)
             };
             newArray[original.Length] = slot;
 
@@ -208,16 +209,7 @@ namespace BetterBeastCrest.Services
             {
                 Type = type,
                 IsLocked = extraSlot.RequiresUnlocking,
-                Position = new Vector2(rightMostSlot.Position.x + 0.45f, rightMostSlot.Position.y + _verticalGapDistance),
-                NavUpIndex = rightMostSlot.NavUpIndex,
-                NavLeftIndex = rightMostSlot.NavLeftIndex + 2,
-                NavRightIndex = 5,
-
-                // These appear to always be -1 for all other tool slots so we will do the same
-                NavUpFallbackIndex = -1,
-                NavLeftFallbackIndex = -1,
-                NavRightFallbackIndex = -1,
-                NavDownFallbackIndex = -1
+                Position = new Vector2(rightMostSlot.Position.x + 0.45f, rightMostSlot.Position.y + _verticalGapDistance)
             };
             newArray[original.Length] = slot;
 

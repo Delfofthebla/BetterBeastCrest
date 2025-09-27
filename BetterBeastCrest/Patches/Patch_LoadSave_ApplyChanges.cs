@@ -25,11 +25,11 @@ namespace BetterBeastCrest.Patches
         private static void UnlockAndModifyCrests()
         {
             if (Helpers.IsBeastCrest1Unlocked)
-                BeastCrestModifier.ApplyWarrior1Changes();
+                BeastCrestModifier.ApplyRank1Changes();
             if (Helpers.IsBeastCrest2Unlocked)
-                BeastCrestModifier.UnlockWarrior2();
+                BeastCrestModifier.UnlockRank2();
             if (Helpers.IsBeastCrest3Unlocked)
-                BeastCrestModifier.UnlockWarrior3();
+                BeastCrestModifier.UnlockRank3();
 
             BeastCrestModifier.MakeGlobalChanges();
         }
