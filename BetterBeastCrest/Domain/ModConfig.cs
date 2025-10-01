@@ -1,16 +1,30 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
+using BetterBeastCrest.Services;
 
-namespace BetterBeastCrest.Domain
+namespace BetterBeastCrest.Domain.Config
 {
     public class ModConfig
     {
-        private const int CURRENT_CONFIG_VERSION = 2;
+        private static readonly string _rank1Prefix = "Rank 1";
+        private static readonly string _rank2Prefix = "Rank 2";
+        private static readonly string _rank3Prefix = "Rank 3";
+        private static readonly string _bindDesc = "Number of masks to restore immediately upon binding (Separate from rage lifesteal)";
+        private static readonly string _lifestealDesc = "Maximum amount of masks you can restore by attacking after binding";
+        private static readonly string _rageDurationDesc = "Duration (in seconds) of the Rage buff after binding. (Vanilla default value is 5 seconds)";
+        private static readonly string _rageDamageMultDesc = "Damage multiplier during rage mode. (Vanilla default value is 25%)";
+        private static readonly string _rageAttackSpeedDesc = "Attack Speed multiplier during rage mode. (Vanilla default value is 18%)";
+        
+        private static readonly FieldInfo? _defaultValueConfigField = typeof(ConfigEntryBase).GetField("<DefaultValue>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        
+        private const int CURRENT_CONFIG_VERSION = 3;
         private ConfigEntry<int> _configVersion;
         
-        private readonly ConfigFile _config;
+        public readonly ConfigFile ConfigFile;
 
         // Global settings
         private ConfigEntry<CrestType> _downAttackCrestType;
@@ -29,20 +43,26 @@ namespace BetterBeastCrest.Domain
         // Healing / Rage
         private ConfigEntry<int> _immediateHealthOnBind1;
         private ConfigEntry<int> _maximumLifeLeech1;
-        private ConfigEntry<int> _rageDurationIncrease1;
+        private ConfigEntry<float> _rageDuration1;
+        private ConfigEntry<int> _rageDamageMultiplier1;
+        private ConfigEntry<float> _rageAttackSpeedPercent1;
 
         private ConfigEntry<int> _immediateHealthOnBind2;
         private ConfigEntry<int> _maximumLifeLeech2;
-        private ConfigEntry<int> _rageDurationIncrease2;
+        private ConfigEntry<float> _rageDuration2;
+        private ConfigEntry<int> _rageDamageMultiplier2;
+        private ConfigEntry<float> _rageAttackSpeedPercent2;
 
         private ConfigEntry<int> _immediateHealthOnBind3;
         private ConfigEntry<int> _maximumLifeLeech3;
-        private ConfigEntry<int> _rageDurationIncrease3;
-
+        private ConfigEntry<float> _rageDuration3;
+        private ConfigEntry<int> _rageDamageMultiplier3;
+        private ConfigEntry<float> _rageAttackSpeedPercent3;
+        
         public ToolItemType CenterToolSlotColor => _centerToolSlotColor.Value;
         public CrestType DownAttackType => _downAttackCrestType.Value;
 
-        public CrestStats CrestDefault { get; } = new CrestStats(0, 3, 0);
+        public CrestStats CrestDefault { get; } = new CrestStatsNoConfig(0, 3, 5.0f, 1.25f, 0.32f);
         public CrestStats Crest1 { get; private set; }
         public CrestStats Crest2 { get; private set; }
         public CrestStats Crest3 { get; private set; }
@@ -52,7 +72,7 @@ namespace BetterBeastCrest.Domain
             var configPath = Path.Combine(Paths.ConfigPath, "BetterBeastCrest.cfg");
             var isNewConfig = !File.Exists(configPath);
             
-            _config = new ConfigFile(configPath, true);
+            ConfigFile = new ConfigFile(configPath, true);
             LoadConfig();
             
             if (!isNewConfig)
@@ -60,7 +80,7 @@ namespace BetterBeastCrest.Domain
             else
             {
                 Plugin.Log.LogInfo("Detected No Config, Generating new one.");
-                _configVersion = _config.Bind("Global", "ConfigVersion", CURRENT_CONFIG_VERSION, "Internal config version for migration purposes");
+                _configVersion = ConfigFile.Bind("Global", "ConfigVersion", CURRENT_CONFIG_VERSION, "Internal config version for migration purposes");
             }
             
             BuildCrestStats();
@@ -68,7 +88,7 @@ namespace BetterBeastCrest.Domain
 
         public void ReloadConfig()
         {
-            _config.Reload();
+            ConfigFile.Reload();
             LoadConfig();
             BuildCrestStats();
             Plugin.Log.LogInfo("Config reloaded and CrestStats rebuilt.");
@@ -76,122 +96,84 @@ namespace BetterBeastCrest.Domain
 
         private void LoadConfig()
         {
-            _centerToolSlotColor = _config.Bind("Global", "CenterToolSlotColor", ToolItemType.Skill, "Specify the type of the center most tool slot. It is Skill in the base game, but you can change that here.");
-            _downAttackCrestType = _config.Bind("Global", "DownAttackType", CrestType.Beast, "Specify the down attack to be used with the beast crest.");
+            _centerToolSlotColor = ConfigFile.Bind("Global", "CenterToolSlotColor", ToolItemType.Skill, "Specify the type of the center most tool slot. It is Skill in the base game, but you can change that here.");
+            _downAttackCrestType = ConfigFile.Bind("Global", "DownAttackType", CrestType.Beast, "Specify the down attack to be used with the beast crest.");
             
-            _topLeftToolSlotRequiredRank = _config.Bind("Global", "TopLeftToolSlot_RequiredRank", 2, "Rank at which the top-left tool slot is available (-1 to disable).");
-            _topLeftToolSlotRequiresUnlocking = _config.Bind("Global", "TopLeftToolSlot_RequiresUnlocking", true, "Whether or not to require spending a memory locket to unluck this slot.");
-            _topLeftToolSlotColor = _config.Bind("Global", "TopLeftToolSlot_Color", ToolItemType.Blue, "The tool slot color for this rank. ==Only Blue and Yellow are supported==");
+            _topLeftToolSlotRequiredRank = ConfigFile.Bind("Global", "TopLeftToolSlot_RequiredRank", 2,
+                new ConfigDescription("Rank at which the top-left tool slot is available (-1 to disable).", new AcceptableValueList<int>(-1,1,2,3)));
+            _topLeftToolSlotRequiresUnlocking = ConfigFile.Bind("Global", "TopLeftToolSlot_RequiresUnlocking", true, "Whether or not to require spending a memory locket to unluck this slot.");
+            _topLeftToolSlotColor = ConfigFile.Bind("Global", "TopLeftToolSlot_Color", ToolItemType.Blue, new ConfigDescription("The tool slot color for this rank. ==Only Blue and Yellow are supported==",
+                new AcceptableEnumList<ToolItemType>(ToolItemType.Blue, ToolItemType.Yellow)));
             
-            _topRightToolSlotRequiredRank = _config.Bind("Global", "TopRightToolSlot_RequiredRank", 3, "Rank at which the top-left tool slot is available (-1 to disable).");
-            _topRightToolSlotRequiresUnlocking = _config.Bind("Global", "TopRightToolSlot_RequiresUnlocking", true, "Whether or not to require spending a memory locket to unluck this slot.");
-            _topRightToolSlotColor = _config.Bind("Global", "TopRightToolSlot_Color", ToolItemType.Yellow, "The tool slot color for this rank. ==Only Blue and Yellow are supported==");
+            _topRightToolSlotRequiredRank = ConfigFile.Bind("Global", "TopRightToolSlot_RequiredRank", 3,
+                new ConfigDescription("Rank at which the top-right tool slot is available (-1 to disable).", new AcceptableValueList<int>(-1,1,2,3)));
+            _topRightToolSlotRequiresUnlocking = ConfigFile.Bind("Global", "TopRightToolSlot_RequiresUnlocking", true, "Whether or not to require spending a memory locket to unluck this slot.");
+            _topRightToolSlotColor = ConfigFile.Bind("Global", "TopRightToolSlot_Color", ToolItemType.Yellow,
+                new ConfigDescription("The tool slot color for this rank. ==Only Blue and Yellow are supported==", new AcceptableEnumList<ToolItemType>(ToolItemType.Blue, ToolItemType.Yellow)));
+
+            _immediateHealthOnBind1 = ConfigFile.Bind("BeastCrestStage1", "HealOnBind", 1, new ConfigDescription($"{_rank1Prefix} - {_bindDesc}", new AcceptableValueRange<int>(0, 10)));
+            _maximumLifeLeech1 = ConfigFile.Bind("BeastCrestStage1", "MaximumLifeLeech", 2, new ConfigDescription($"{_rank1Prefix} - {_lifestealDesc}", new AcceptableValueRange<int>(0, 10)));
+            _rageDuration1 = ConfigFile.Bind("BeastCrestStage1", "RageDuration", 5.0f, new ConfigDescription($"{_rank1Prefix} - {_rageDurationDesc}", new AcceptableValueRange<float>(0.0f, 15.0f)));
+            _rageDuration1.SettingChanged += OnRageStatsChanged;
+            _rageDamageMultiplier1 = ConfigFile.Bind("BeastCrestStage1", "RageDamageMultiplier", 25,
+                new ConfigDescription($"{_rank1Prefix} - {_rageDamageMultDesc}", new AcceptableValueRange<int>(0, 100), new ConfigurationManagerAttributes { ShowRangeAsPercent = true }));
+            _rageDamageMultiplier1.SettingChanged += OnRageStatsChanged;
+            _rageAttackSpeedPercent1 = ConfigFile.Bind("BeastCrestStage1", "RageAttackSpeedPercent", 18f, new ConfigDescription($"{_rank1Prefix} - {_rageAttackSpeedDesc}", new AcceptableValueRange<float>(0.0f, 50.0f)));
+            _rageAttackSpeedPercent1.SettingChanged += OnRageStatsChanged;
             
-            _immediateHealthOnBind1 = _config.Bind("BeastCrestStage1", "HealOnBind", 1, "Specify the amount of masks you want to restore upon binding with Beast Crest Rank 1. (Separate from the rage lifesteal)");
-            _maximumLifeLeech1 = _config.Bind("BeastCrestStage1", "MaximumLifeLeech", 2, "The maximum amount of masks you can restore by attacking after binding for Rank 1.");
-            _rageDurationIncrease1 = _config.Bind("BeastCrestStage1", "RageDurationIncrease", 0, "The percentage increase in rage duration for Rank 1. (You can also use negative numbers if you wish to decrease it)");
+            _immediateHealthOnBind2 = ConfigFile.Bind("BeastCrestStage2", "HealOnBind", 1, new ConfigDescription($"{_rank2Prefix} - {_bindDesc}", new AcceptableValueRange<int>(0, 10)));
+            _maximumLifeLeech2 = ConfigFile.Bind("BeastCrestStage2", "MaximumLifeLeech", 2, new ConfigDescription($"{_rank2Prefix} - {_lifestealDesc}", new AcceptableValueRange<int>(0, 10)));
+            _rageDuration2 = ConfigFile.Bind("BeastCrestStage2", "RageDuration", 6.0f, new ConfigDescription($"{_rank2Prefix} - {_rageDurationDesc}", new AcceptableValueRange<float>(0.0f, 15.0f)));
+            _rageDuration2.SettingChanged += OnRageStatsChanged;
+            _rageDamageMultiplier2 = ConfigFile.Bind("BeastCrestStage2", "RageDamageMultiplier", 25,
+                new ConfigDescription($"{_rank2Prefix} - {_rageDamageMultDesc}", new AcceptableValueRange<int>(0, 100), new ConfigurationManagerAttributes { ShowRangeAsPercent = true }));
+            _rageDamageMultiplier2.SettingChanged += OnRageStatsChanged;
+            _rageAttackSpeedPercent2 = ConfigFile.Bind("BeastCrestStage2", "RageAttackSpeedPercent", 18f, new ConfigDescription($"{_rank2Prefix} - {_rageAttackSpeedDesc}", new AcceptableValueRange<float>(0.0f, 50.0f)));
+            _rageAttackSpeedPercent2.SettingChanged += OnRageStatsChanged;
             
-            _immediateHealthOnBind2 = _config.Bind("BeastCrestStage2", "HealOnBind", 1, "Specify the amount of masks you want to restore upon binding with Beast Crest Rank 2. (Separate from the rage lifesteal)");
-            _maximumLifeLeech2 = _config.Bind("BeastCrestStage2", "MaximumLifeLeech", 2, "The maximum amount of masks you can restore by attacking after binding for Rank 2.");
-            _rageDurationIncrease2 = _config.Bind("BeastCrestStage2", "RageDurationIncrease", 20, "The percentage increase in rage duration for Rank 2. (You can also use negative numbers if you wish to decrease it)");
-            
-            _immediateHealthOnBind3 = _config.Bind("BeastCrestStage3", "HealOnBind", 1, "Specify the amount of masks you want to restore upon binding with Beast Crest Rank 3. (Separate from the rage lifesteal)");
-            _maximumLifeLeech3 = _config.Bind("BeastCrestStage3", "MaximumLifeLeech", 3, "The maximum amount of masks you can restore by attacking after binding for Rank 3.");
-            _rageDurationIncrease3 = _config.Bind("BeastCrestStage3", "RageDurationIncrease", 20, "The percentage increase in rage duration for Rank 3. (You can also use negative numbers if you wish to decrease it)");
+            _immediateHealthOnBind3 = ConfigFile.Bind("BeastCrestStage3", "HealOnBind", 1, new ConfigDescription($"{_rank3Prefix} - {_bindDesc}", new AcceptableValueRange<int>(0, 10)));
+            _maximumLifeLeech3 = ConfigFile.Bind("BeastCrestStage3", "MaximumLifeLeech", 3, new ConfigDescription($"{_rank3Prefix} - {_lifestealDesc}", new AcceptableValueRange<int>(0, 10)));
+            _rageDuration3 = ConfigFile.Bind("BeastCrestStage3", "RageDuration", 6.0f, new ConfigDescription($"{_rank3Prefix} - {_rageDurationDesc}", new AcceptableValueRange<float>(0.0f, 15.0f)));
+            _rageDuration3.SettingChanged += OnRageStatsChanged;
+            _rageDamageMultiplier3 = ConfigFile.Bind("BeastCrestStage3", "RageDamageMultiplier", 25,
+                new ConfigDescription($"{_rank3Prefix} - {_rageDamageMultDesc}", new AcceptableValueRange<int>(0, 100), new ConfigurationManagerAttributes { ShowRangeAsPercent = true }));
+            _rageDamageMultiplier3.SettingChanged += OnRageStatsChanged;
+            _rageAttackSpeedPercent3 = ConfigFile.Bind("BeastCrestStage3", "RageAttackSpeedPercent", 18f, new ConfigDescription($"{_rank3Prefix} - {_rageAttackSpeedDesc}", new AcceptableValueRange<float>(0.0f, 50.0f)));
+            _rageAttackSpeedPercent3.SettingChanged += OnRageStatsChanged;
         }
 
-        private void MigrateIfNeeded()
+        private static void OnRageStatsChanged(object sender, EventArgs e)
         {
-            _configVersion = _config.Bind("Global", "ConfigVersion", 1, "Internal config version for migration purposes");
-            var existingVersion = _configVersion.Value;
-            Plugin.Log.LogInfo("Detected Config Version: " + existingVersion);
-            
-            if (existingVersion < CURRENT_CONFIG_VERSION)
-            {
-                Plugin.Log.LogInfo($"Migrating config from version {existingVersion} to {CURRENT_CONFIG_VERSION}");
-                               
-                // Bind all the legacy values to load them into our config. Very messy but I just can't be assed anymore.
-                _config.Bind("BeastCrestStage2", "EnableNewToolSlot", true, "");
-                _config.Bind("BeastCrestStage2", "ToolSlotRequiresUnlocking", true, "");
-                _config.Bind("BeastCrestStage2", "ToolSlotColor", ToolItemType.Blue, "");
-                _config.Bind("BeastCrestStage3", "EnableNewToolSlot", true, "");
-                _config.Bind("BeastCrestStage3", "ToolSlotRequiresUnlocking", true, "");
-                _config.Bind("BeastCrestStage3", "ToolSlotColor", ToolItemType.Yellow, "");
-                
-                MigrateToolSlot("BeastCrestStage2", ExtraToolSlotPosition.TopLeft);
-                MigrateToolSlot("BeastCrestStage3", ExtraToolSlotPosition.TopRight);
-            }
-
-            _configVersion.Value = CURRENT_CONFIG_VERSION;
-            
-            _config.Save();
-        }
-
-        private void MigrateToolSlot(string oldSection, ExtraToolSlotPosition position)
-        {
-            var enableKey = new ConfigDefinition(oldSection, "EnableNewToolSlot");
-            var requireKey = new ConfigDefinition(oldSection, "ToolSlotRequiresUnlocking");
-            var colorKey = new ConfigDefinition(oldSection, "ToolSlotColor");
-
-            if (_config.TryGetEntry(enableKey, out ConfigEntry<bool> enableEntry) && enableEntry.Value)
-            {
-                if (position == ExtraToolSlotPosition.TopLeft)
-                    _topLeftToolSlotRequiredRank.Value = 2;
-                else if (position == ExtraToolSlotPosition.TopRight)
-                    _topRightToolSlotRequiredRank.Value = 3;
-            }
-            else
-            {
-                if (position == ExtraToolSlotPosition.TopLeft)
-                    _topLeftToolSlotRequiredRank.Value = -1;
-                else if (position == ExtraToolSlotPosition.TopRight)
-                    _topRightToolSlotRequiredRank.Value = -1;
-            }
-
-            if (_config.TryGetEntry<bool>(requireKey, out var reqEntry))
-            {
-                if (position == ExtraToolSlotPosition.TopLeft)
-                    _topLeftToolSlotRequiresUnlocking.Value = reqEntry.Value;
-                else
-                    _topRightToolSlotRequiresUnlocking.Value = reqEntry.Value;
-            }
-
-            if (_config.TryGetEntry<ToolItemType>(colorKey, out var colorEntry))
-            {
-                if (position == ExtraToolSlotPosition.TopLeft)
-                    _topLeftToolSlotColor.Value = colorEntry.Value;
-                else
-                    _topRightToolSlotColor.Value = colorEntry.Value;
-            }
-
-            // Remove old keys
-            _config.Remove(enableKey);
-            _config.Remove(requireKey);
-            _config.Remove(colorKey);
-            
-            _config.Save();
+            if (BeastCrestModifier.ModInitialized)
+                BeastCrestModifier.AdjustRageStats();
         }
 
         private void BuildCrestStats()
         {
             Crest1 = new CrestStats(
-                _immediateHealthOnBind1.Value,
-                _maximumLifeLeech1.Value,
-                _rageDurationIncrease1.Value,
+                _immediateHealthOnBind1,
+                _maximumLifeLeech1,
+                _rageDuration1,
+                _rageDamageMultiplier1,
+                _rageAttackSpeedPercent1,
                 BuildExtraToolSlots(1)
             );
 
             Crest2 = new CrestStats(
-                _immediateHealthOnBind2.Value,
-                _maximumLifeLeech2.Value,
-                _rageDurationIncrease2.Value,
+                _immediateHealthOnBind2,
+                _maximumLifeLeech2,
+                _rageDuration2,
+                _rageDamageMultiplier2,
+                _rageAttackSpeedPercent2,
                 BuildExtraToolSlots(2)
             );
 
             Crest3 = new CrestStats(
-                _immediateHealthOnBind3.Value,
-                _maximumLifeLeech3.Value,
-                _rageDurationIncrease3.Value,
+                _immediateHealthOnBind3,
+                _maximumLifeLeech3,
+                _rageDuration3,
+                _rageDamageMultiplier3,
+                _rageAttackSpeedPercent3,
                 BuildExtraToolSlots(3)
             );
         }
@@ -219,6 +201,102 @@ namespace BetterBeastCrest.Domain
             }
 
             return slots;
+        }
+        
+        private void MigrateIfNeeded()
+        {
+            _configVersion = ConfigFile.Bind("Global", "ConfigVersion", 1,
+                new ConfigDescription("Internal config version for migration purposes", null, new ConfigurationManagerAttributes { Browsable = false, HideDefaultButton = true, HideSettingName = true }));
+            
+            var existingVersion = _configVersion.Value;
+            Plugin.Log.LogInfo("Detected Config Version: " + existingVersion);
+            
+            if (existingVersion != CURRENT_CONFIG_VERSION)
+                Plugin.Log.LogInfo($"Migrating config from version {existingVersion} to {CURRENT_CONFIG_VERSION}");
+            
+            if (existingVersion < 2)
+                UpgradeToVersion2();
+
+            if (existingVersion < 3)
+                UpgradeToVersion3();
+            
+            _defaultValueConfigField?.SetValue(_configVersion, CURRENT_CONFIG_VERSION);
+            _configVersion.Value = CURRENT_CONFIG_VERSION;
+            
+            ConfigFile.Save();
+        }
+
+        private void UpgradeToVersion2()
+        {
+            // Bind all the legacy values to load them into our config. Very messy but I just can't be assed anymore.
+            ConfigFile.Bind("BeastCrestStage2", "EnableNewToolSlot", true, "");
+            ConfigFile.Bind("BeastCrestStage2", "ToolSlotRequiresUnlocking", true, "");
+            ConfigFile.Bind("BeastCrestStage2", "ToolSlotColor", ToolItemType.Blue, "");
+            ConfigFile.Bind("BeastCrestStage3", "EnableNewToolSlot", true, "");
+            ConfigFile.Bind("BeastCrestStage3", "ToolSlotRequiresUnlocking", true, "");
+            ConfigFile.Bind("BeastCrestStage3", "ToolSlotColor", ToolItemType.Yellow, "");
+                
+            MigrateToolSlot("BeastCrestStage2", ExtraToolSlotPosition.TopLeft);
+            MigrateToolSlot("BeastCrestStage3", ExtraToolSlotPosition.TopRight);
+        }
+
+        private void UpgradeToVersion3()
+        {
+            var oldDurationIncrease1 = ConfigFile.Bind("BeastCrestStage1", "RageDurationIncrease", 0, "");
+            var oldDurationIncrease2 = ConfigFile.Bind("BeastCrestStage2", "RageDurationIncrease", 20, "");
+            var oldDurationIncrease3 = ConfigFile.Bind("BeastCrestStage3", "RageDurationIncrease", 20, "");
+
+            _rageDuration1.Value = CrestDefault.RageDuration * (1f + (oldDurationIncrease1.Value / 100f));
+            ConfigFile.Remove(oldDurationIncrease1.Definition);
+            _rageDuration2.Value = CrestDefault.RageDuration * (1f + (oldDurationIncrease2.Value / 100f));
+            ConfigFile.Remove(oldDurationIncrease2.Definition);
+            _rageDuration3.Value = CrestDefault.RageDuration * (1f + (oldDurationIncrease3.Value / 100f));
+            ConfigFile.Remove(oldDurationIncrease3.Definition);
+        }
+
+        private void MigrateToolSlot(string oldSection, ExtraToolSlotPosition position)
+        {
+            var enableKey = new ConfigDefinition(oldSection, "EnableNewToolSlot");
+            var requireKey = new ConfigDefinition(oldSection, "ToolSlotRequiresUnlocking");
+            var colorKey = new ConfigDefinition(oldSection, "ToolSlotColor");
+
+            if (ConfigFile.TryGetEntry(enableKey, out ConfigEntry<bool> enableEntry) && enableEntry.Value)
+            {
+                if (position == ExtraToolSlotPosition.TopLeft)
+                    _topLeftToolSlotRequiredRank.Value = 2;
+                else if (position == ExtraToolSlotPosition.TopRight)
+                    _topRightToolSlotRequiredRank.Value = 3;
+            }
+            else
+            {
+                if (position == ExtraToolSlotPosition.TopLeft)
+                    _topLeftToolSlotRequiredRank.Value = -1;
+                else if (position == ExtraToolSlotPosition.TopRight)
+                    _topRightToolSlotRequiredRank.Value = -1;
+            }
+
+            if (ConfigFile.TryGetEntry<bool>(requireKey, out var reqEntry))
+            {
+                if (position == ExtraToolSlotPosition.TopLeft)
+                    _topLeftToolSlotRequiresUnlocking.Value = reqEntry.Value;
+                else
+                    _topRightToolSlotRequiresUnlocking.Value = reqEntry.Value;
+            }
+
+            if (ConfigFile.TryGetEntry<ToolItemType>(colorKey, out var colorEntry))
+            {
+                if (position == ExtraToolSlotPosition.TopLeft)
+                    _topLeftToolSlotColor.Value = colorEntry.Value;
+                else
+                    _topRightToolSlotColor.Value = colorEntry.Value;
+            }
+
+            // Remove old keys
+            ConfigFile.Remove(enableKey);
+            ConfigFile.Remove(requireKey);
+            ConfigFile.Remove(colorKey);
+            
+            ConfigFile.Save();
         }
     }
 }

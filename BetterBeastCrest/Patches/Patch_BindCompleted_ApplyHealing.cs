@@ -15,11 +15,11 @@ namespace BetterBeastCrest.Patches
 
             int healValue;
             if (Helpers.IsBeastCrest3Unlocked)
-                healValue = Plugin.Config.Crest3.ImmediateHeal;
+                healValue = Plugin.ModConfig.Crest3.ImmediateHeal;
             else if (Helpers.IsBeastCrest2Unlocked)
-                healValue = Plugin.Config.Crest2.ImmediateHeal;
+                healValue = Plugin.ModConfig.Crest2.ImmediateHeal;
             else
-                healValue = Plugin.Config.Crest1.ImmediateHeal;
+                healValue = Plugin.ModConfig.Crest1.ImmediateHeal;
 
             if (healValue > 0)
                 __instance.AddHealth(healValue);

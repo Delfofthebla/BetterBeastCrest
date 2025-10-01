@@ -9,8 +9,12 @@ namespace BetterBeastCrest.Patches
         [HarmonyPrefix]
         public static void RevertBeforeLoad()
         {
-            Plugin.Config.ReloadConfig();
-            DownAttackModifier.ShouldRevertPatchWhenAble = true;
+            if (BeastCrestModifier.ModInitialized)
+            {
+                BeastCrestModifier.ModInitialized = false;
+                DownAttackModifier.ShouldRevertPatchWhenAble = true;
+                Plugin.ModConfig.ReloadConfig();
+            }
             
             if (!BeastCrestModifier.CacheOriginalValuesIfNecessary())
                 BeastCrestModifier.ResetModStateIfAble();
@@ -20,6 +24,7 @@ namespace BetterBeastCrest.Patches
         public static void PerformSaveLoadActions()
         {
             UnlockAndModifyCrests();
+            BeastCrestModifier.ModInitialized = true;
         }
 
         private static void UnlockAndModifyCrests()

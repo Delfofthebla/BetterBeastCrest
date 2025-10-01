@@ -1,6 +1,7 @@
-﻿using BepInEx;
+﻿using System.Reflection;
+using BepInEx;
 using BepInEx.Logging;
-using BetterBeastCrest.Domain;
+using BetterBeastCrest.Domain.Config;
 using HarmonyLib;
 
 namespace BetterBeastCrest
@@ -10,17 +11,19 @@ namespace BetterBeastCrest
     {
         public const string PLUGIN_GUID = "delfofthebla.silksong.betterbeastcrest";
         public const string PLUGIN_NAME = "Better Beast Crest";
-        public const string PLUGIN_VERSION = "2.1.0";
-        
+        public const string PLUGIN_VERSION = "2.2.0";
         public static ManualLogSource Log;
-        public static ModConfig Config;
+        public static ModConfig ModConfig;
 
         public void Awake()
         {
             Log = Logger;
             Log.LogInfo("Better Beast Crest Loading...");
 
-            Config = new ModConfig();
+            ModConfig = new ModConfig();
+            
+            var field = typeof(BaseUnityPlugin).GetField($"<{nameof(Config)}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
+            field!.SetValue(this, ModConfig.ConfigFile);    // Fuck you for making me do this plugin api devs.
 
             var harmony = new Harmony(PLUGIN_GUID);
             harmony.PatchAll();

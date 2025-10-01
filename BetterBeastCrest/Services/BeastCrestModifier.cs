@@ -11,16 +11,17 @@ namespace BetterBeastCrest.Services
 {
     public static class BeastCrestModifier
     {
-        // General stuff
-        private static Gameplay _gameplayInstance;
+        public static bool ModInitialized = false;
+        
+        private static Gameplay? _gameplayInstance;
         private static readonly MethodInfo _getGameplayMethod = typeof(GlobalSettingsBase<Gameplay>).GetMethod("Get", BindingFlags.Static | BindingFlags.NonPublic)!;
         private static readonly FieldInfo _rageDurationField = AccessTools.Field(typeof(Gameplay), "warriorRageDuration");
+        private static readonly FieldInfo _rageDamageMultField = AccessTools.Field(typeof(Gameplay), "warriorDamageMultiplier");
+        private static readonly FieldInfo _rageAttackCooldownField = AccessTools.Field(typeof(HeroControllerConfigWarrior), "rageAttackCooldownTime");
         private static readonly FieldInfo _slotsField = AccessTools.Field(typeof(ToolCrest), "slots");
         
         private static readonly float _verticalGapDistance = 1.72f;
         private static ToolCrest.SlotInfo[]? _originalWarriorCrestSlots;
-        private static bool _hasPatchedRageDuration;
-        private static float _originalRageDuration;
 
         public static bool CacheOriginalValuesIfNecessary()
         {
@@ -29,7 +30,6 @@ namespace BetterBeastCrest.Services
 
             Plugin.Log.LogInfo("Caching Original Beast Crest Slot Values.");
             _originalWarriorCrestSlots = Gameplay.WarriorCrest.Slots.ToArray();
-            _originalRageDuration = Gameplay.WarriorRageDuration;
             return true;
         }
 
@@ -41,16 +41,16 @@ namespace BetterBeastCrest.Services
                 _slotsField.SetValue(Gameplay.WarriorCrest, _originalWarriorCrestSlots.ToArray());
             }
 
-            if (!Mathf.Approximately(_originalRageDuration, Gameplay.WarriorRageDuration))
+            if (!Mathf.Approximately(Plugin.ModConfig.CrestDefault.RageDuration, Gameplay.WarriorRageDuration))
             {
-                Plugin.Log.LogInfo("Reverting Rage Duration to Default Value of: " + _originalRageDuration + " from: " + Gameplay.WarriorRageDuration);
-                _rageDurationField.SetValue(GetGameplayInstance(), _originalRageDuration);
+                Plugin.Log.LogInfo("Reverting Rage Duration to Default Value of: " + Plugin.ModConfig.CrestDefault.RageDuration + " from: " + Gameplay.WarriorRageDuration);
+                _rageDurationField.SetValue(GetGameplayInstance(), Plugin.ModConfig.CrestDefault.RageDuration);
             }
         }
 
         public static void MakeGlobalChanges()
         {
-            AdjustRageDuration();
+            AdjustRageStats();
         }
 
         public static void ApplyRank1Changes()
@@ -58,9 +58,9 @@ namespace BetterBeastCrest.Services
             Plugin.Log.LogInfo("Making Beast Crest Rank 1 Changes");
 
             ModifyCenterToolSlotIfNecessary();
-            AddExtraToolSlotsIfNecessary(Plugin.Config.Crest1.ExtraToolSlots);
+            AddExtraToolSlotsIfNecessary(Plugin.ModConfig.Crest1.ExtraToolSlots);
 
-            var description = BuildDescription("Rank 1", Plugin.Config.CrestDefault, Plugin.Config.Crest1);
+            var description = BuildDescription("Rank 1", Plugin.ModConfig.CrestDefault, Plugin.ModConfig.Crest1);
             if (string.IsNullOrWhiteSpace(description))
                 return;
 
@@ -70,9 +70,9 @@ namespace BetterBeastCrest.Services
         public static void UnlockRank2()
         {
             Plugin.Log.LogInfo("Unlocking Beast Crest Rank 2");
-            AddExtraToolSlotsIfNecessary(Plugin.Config.Crest2.ExtraToolSlots);
+            AddExtraToolSlotsIfNecessary(Plugin.ModConfig.Crest2.ExtraToolSlots);
 
-            var description = BuildDescription("Rank 2", Plugin.Config.Crest1, Plugin.Config.Crest2);
+            var description = BuildDescription("Rank 2", Plugin.ModConfig.Crest1, Plugin.ModConfig.Crest2);
             if (string.IsNullOrWhiteSpace(description))
                 return;
 
@@ -82,35 +82,42 @@ namespace BetterBeastCrest.Services
         public static void UnlockRank3()
         {
             Plugin.Log.LogInfo("Unlocking Beast Crest Rank 3");
-            AddExtraToolSlotsIfNecessary(Plugin.Config.Crest3.ExtraToolSlots);
+            AddExtraToolSlotsIfNecessary(Plugin.ModConfig.Crest3.ExtraToolSlots);
 
-            var description = BuildDescription("Rank 3", Plugin.Config.Crest2, Plugin.Config.Crest3);
+            var description = BuildDescription("Rank 3", Plugin.ModConfig.Crest2, Plugin.ModConfig.Crest3);
             if (string.IsNullOrWhiteSpace(description))
                 return;
 
             LocalizationInjector.Append(Gameplay.WarriorCrest.Description, description);
         }
 
-        public static void AdjustRageDuration()
+        public static void AdjustRageStats()
         {
-            if (!_hasPatchedRageDuration)
-            {
-                _originalRageDuration = Gameplay.WarriorRageDuration;
-                _hasPatchedRageDuration = true;
-            }
-
             var gameplayInstance = GetGameplayInstance();
-            if (Helpers.IsBeastCrest3Unlocked && Plugin.Config.Crest3.RageDuration != 0)
-                _rageDurationField.SetValue(gameplayInstance, _originalRageDuration * (1f + (Plugin.Config.Crest3.RageDuration / 100f)));
-            else if (Helpers.IsBeastCrest2Unlocked && Plugin.Config.Crest2.RageDuration != 0)
-                _rageDurationField.SetValue(gameplayInstance, _originalRageDuration * (1f + (Plugin.Config.Crest2.RageDuration / 100f)));
-            else if (Helpers.IsBeastCrest1Unlocked && Plugin.Config.Crest1.RageDuration != 0)
-                _rageDurationField.SetValue(gameplayInstance, _originalRageDuration * (1f + (Plugin.Config.Crest1.RageDuration / 100f)));
+            var beastConfig = Gameplay.WarriorCrest.HeroConfig as HeroControllerConfigWarrior;
+            if (Helpers.IsBeastCrest3Unlocked)
+            {
+                _rageDurationField.SetValue(gameplayInstance, Plugin.ModConfig.Crest3.RageDuration);
+                _rageDamageMultField.SetValue(gameplayInstance, Plugin.ModConfig.Crest3.RageDamageMultiplier);
+                _rageAttackCooldownField.SetValue(beastConfig, Plugin.ModConfig.Crest3.RageAttackCooldown);
+            }
+            else if (Helpers.IsBeastCrest2Unlocked)
+            {
+                _rageDurationField.SetValue(gameplayInstance, Plugin.ModConfig.Crest2.RageDuration);
+                _rageDamageMultField.SetValue(gameplayInstance, Plugin.ModConfig.Crest2.RageDamageMultiplier);
+                _rageAttackCooldownField.SetValue(beastConfig, Plugin.ModConfig.Crest2.RageAttackCooldown);
+            }
+            else if (Helpers.IsBeastCrest1Unlocked)
+            {
+                _rageDurationField.SetValue(gameplayInstance, Plugin.ModConfig.Crest1.RageDuration);
+                _rageDamageMultField.SetValue(gameplayInstance, Plugin.ModConfig.Crest1.RageDamageMultiplier);
+                _rageAttackCooldownField.SetValue(beastConfig, Plugin.ModConfig.Crest1.RageAttackCooldown);
+            }
         }
 
         private static void ModifyCenterToolSlotIfNecessary()
         {
-            var type = Plugin.Config.CenterToolSlotColor;
+            var type = Plugin.ModConfig.CenterToolSlotColor;
             if (type == ToolItemType.Skill)
                 return;
 

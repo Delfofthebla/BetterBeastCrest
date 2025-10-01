@@ -9,12 +9,10 @@ namespace BetterBeastCrest.Services
 {
     public static class DownAttackModifier
     {
-        public static bool ShouldRevertPatchWhenAble = false;
-        
-        private static bool HasPatchedDownAir;
-        private static HeroControllerConfig? BackupConfig;
-        private static HeroController.ConfigGroup? BackupConfigGroup;
-        private static HeroController.ConfigGroup? SwapCrestConfigGroup;
+        private static bool _hasPatchedDownAir;
+        private static HeroControllerConfig? _backupConfig;
+        private static HeroController.ConfigGroup? _backupConfigGroup;
+        private static HeroController.ConfigGroup? _swapCrestConfigGroup;
         
         private static readonly FieldInfo _heroAnimOverrideLibField = AccessTools.Field(typeof(HeroControllerConfig), "heroAnimOverrideLib");
         private static readonly string[] _configFields =
@@ -39,20 +37,22 @@ namespace BetterBeastCrest.Services
         private static readonly PropertyInfo _cg_altDownSlash = AccessTools.Property(typeof(HeroController.ConfigGroup), "AltDownSlash");
         private static readonly PropertyInfo _cg_downSlashDamager = AccessTools.Property(typeof(HeroController.ConfigGroup), "DownSlashDamager");
         private static readonly PropertyInfo _cg_altDownSlashDamager = AccessTools.Property(typeof(HeroController.ConfigGroup), "AltDownSlashDamager");
+        
+        public static bool ShouldRevertPatchWhenAble = false;
 
         public static void RevertDownAttackPatch(HeroController heroController)
         {
-            HasPatchedDownAir = false;
+            _hasPatchedDownAir = false;
             ShouldRevertPatchWhenAble = false;
             
-            if (SwapCrestConfigGroup != null && (bool) (UnityEngine.Object) SwapCrestConfigGroup.ActiveRoot)
-                SwapCrestConfigGroup.ActiveRoot.SetActive(false);
+            if (_swapCrestConfigGroup != null && (bool) (UnityEngine.Object) _swapCrestConfigGroup.ActiveRoot)
+                _swapCrestConfigGroup.ActiveRoot.SetActive(false);
 
-            if (BackupConfigGroup != null && BackupConfigGroup.Config != null)
+            if (_backupConfigGroup != null && _backupConfigGroup.Config != null)
             {
                 var allConfigGroups = _hc_configs.GetValue(heroController) as HeroController.ConfigGroup[] ?? Array.Empty<HeroController.ConfigGroup>();
                 var beastConfigGroup = allConfigGroups.ForCrest(CrestType.Beast);
-                OverwriteDownAttackMoveset(BackupConfigGroup, beastConfigGroup);
+                OverwriteDownAttackMoveset(_backupConfigGroup, beastConfigGroup);
             }
             
             Plugin.Log.LogInfo("Down Attack Patch disabled.");
@@ -62,29 +62,44 @@ namespace BetterBeastCrest.Services
         {
             if (ShouldRevertPatchWhenAble)
                 RevertDownAttackPatch(heroController);
+
+            // var beastConfig = beastConfigGroup.Config as HeroControllerConfigWarrior;
+            // var otherBeastConfig = Gameplay.WarriorCrest.HeroConfig as HeroControllerConfigWarrior;
+            // if (beastConfig == null || otherBeastConfig == null)
+            // {
+            //     Plugin.Log.LogError("Couldn't cast it as a warrior config. Cringe.");
+            //     return;
+            // }
+            //
+            // Plugin.Log.LogInfo("====STATS====");
+            // Plugin.Log.LogInfo("WarriorDamageMultiplier: " + Gameplay.WarriorDamageMultiplier);
+            // Plugin.Log.LogInfo($"rageAttackDuration: {AccessTools.Field(typeof(HeroControllerConfigWarrior), "rageAttackDuration").GetValue(beastConfig)}, AttackDuration: {beastConfig.AttackDuration}");
+            // Plugin.Log.LogInfo($"rageAttackRecoveryTime: {AccessTools.Field(typeof(HeroControllerConfigWarrior), "rageAttackRecoveryTime").GetValue(beastConfig)}, AttackRecoveryTime: {beastConfig.AttackRecoveryTime}");
+            // Plugin.Log.LogInfo($"HeroController rageAttackCooldownTime: {AccessTools.Field(typeof(HeroControllerConfigWarrior), "rageAttackCooldownTime").GetValue(beastConfig)}, AttackCooldownTime: {beastConfig.AttackCooldownTime}");
+            // Plugin.Log.LogInfo($"Gameplay rageAttackCooldownTime: {AccessTools.Field(typeof(HeroControllerConfigWarrior), "rageAttackCooldownTime").GetValue(otherBeastConfig)}, AttackCooldownTime: {otherBeastConfig.AttackCooldownTime}");
+            // Plugin.Log.LogInfo($"rageQuickAttackCooldownTime: {AccessTools.Field(typeof(HeroControllerConfigWarrior), "rageQuickAttackCooldownTime").GetValue(beastConfig)}, QuickAttackCooldownTime: {beastConfig.QuickAttackCooldownTime}");
             
-            if (HasPatchedDownAir)
+            if (_hasPatchedDownAir)
                 return;
 
             Plugin.Log.LogInfo("Attempting to modify the Beast Crest Down Attack.");
-            HasPatchedDownAir = true;
+            _hasPatchedDownAir = true;
             
             var allConfigGroups = _hc_configs.GetValue(heroController) as HeroController.ConfigGroup[] ?? Array.Empty<HeroController.ConfigGroup>();
-
-            var otherConfigGroup = allConfigGroups.ForCrest(Plugin.Config.DownAttackType);
-            if (otherConfigGroup == null)
-            {
-                Plugin.Log.LogError($"Unable to find crest config group for down attack type: {Plugin.Config.DownAttackType}.");
-                return;
-            }
-            SwapCrestConfigGroup = otherConfigGroup;
-
             var beastConfigGroup = allConfigGroups.ForCrest(CrestType.Beast);
             if (beastConfigGroup == null)
             {
-                Plugin.Log.LogError("No normal config group found for Beast Crest.");
+                Plugin.Log.LogError("No config group found for Beast Crest.");
                 return;
             }
+            
+            var otherConfigGroup = allConfigGroups.ForCrest(Plugin.ModConfig.DownAttackType);
+            if (otherConfigGroup == null)
+            {
+                Plugin.Log.LogError($"Unable to find crest config group for down attack type: {Plugin.ModConfig.DownAttackType}.");
+                return;
+            }
+            _swapCrestConfigGroup = otherConfigGroup;
             
             BackupBeastCrestDefaultsIfNecessary(beastConfigGroup);
             otherConfigGroup.ActiveRoot.SetActive(true);    // Forcefully load the prefabs (I guess? Good god I have no fucking idea what I am doing)
@@ -93,18 +108,18 @@ namespace BetterBeastCrest.Services
             // Cause the HeroController to reprocess everything about the config
             _hc_updateConfig.Invoke(heroController, new object [] { });
             
-            Plugin.Log.LogInfo($"Beast Crest down attack overridden with {Plugin.Config.DownAttackType} down attack.");
+            Plugin.Log.LogInfo($"Beast Crest down attack overridden with {Plugin.ModConfig.DownAttackType} down attack.");
         }
 
         private static void BackupBeastCrestDefaultsIfNecessary(HeroController.ConfigGroup beastConfigGroup)
         {
-            if (BackupConfig != null && BackupConfigGroup != null)
+            if (_backupConfig != null && _backupConfigGroup != null)
                 return;
 
-            BackupConfig = ScriptableObject.CreateInstance<HeroControllerConfig>();
-            BackupConfigGroup = new HeroController.ConfigGroup { Config = BackupConfig };
-            _heroAnimOverrideLibField.SetValue(BackupConfig, _heroAnimOverrideLibField.GetValue(beastConfigGroup.Config));
-            CopyAndInitializeConfigGroup(beastConfigGroup, BackupConfigGroup);
+            _backupConfig = ScriptableObject.CreateInstance<HeroControllerConfig>();
+            _backupConfigGroup = new HeroController.ConfigGroup { Config = _backupConfig };
+            _heroAnimOverrideLibField.SetValue(_backupConfig, _heroAnimOverrideLibField.GetValue(beastConfigGroup.Config));
+            CopyAndInitializeConfigGroup(beastConfigGroup, _backupConfigGroup);
         }
 
         private static void OverwriteDownAttackMoveset(HeroController.ConfigGroup? movesetGroup, HeroController.ConfigGroup? modifyGroup)

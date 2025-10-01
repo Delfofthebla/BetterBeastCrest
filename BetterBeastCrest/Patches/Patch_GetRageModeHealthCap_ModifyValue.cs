@@ -12,11 +12,11 @@ namespace BetterBeastCrest.Patches
         {
             int newMax;
             if (Helpers.IsBeastCrest3Unlocked)
-                newMax = Plugin.Config.Crest3.MaxLifeLeech;
+                newMax = Plugin.ModConfig.Crest3.MaxLifeLeech;
             else if (Helpers.IsBeastCrest2Unlocked)
-                newMax = Plugin.Config.Crest2.MaxLifeLeech;
+                newMax = Plugin.ModConfig.Crest2.MaxLifeLeech;
             else
-                newMax = Plugin.Config.Crest1.MaxLifeLeech;
+                newMax = Plugin.ModConfig.Crest1.MaxLifeLeech;
 
             if (Gameplay.MultibindTool.IsEquipped)
                 newMax++;
