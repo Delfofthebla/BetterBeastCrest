@@ -101,13 +101,13 @@ namespace BetterBeastCrest.Domain.Config
             
             _topLeftToolSlotRequiredRank = ConfigFile.Bind("Global", "TopLeftToolSlot_RequiredRank", 2,
                 new ConfigDescription("Rank at which the top-left tool slot is available (-1 to disable).", new AcceptableValueList<int>(-1,1,2,3)));
-            _topLeftToolSlotRequiresUnlocking = ConfigFile.Bind("Global", "TopLeftToolSlot_RequiresUnlocking", true, "Whether or not to require spending a memory locket to unluck this slot.");
+            _topLeftToolSlotRequiresUnlocking = ConfigFile.Bind("Global", "TopLeftToolSlot_RequiresUnlocking", true, "Whether or not to require spending a memory locket to unlock this slot.");
             _topLeftToolSlotColor = ConfigFile.Bind("Global", "TopLeftToolSlot_Color", ToolItemType.Blue, new ConfigDescription("The tool slot color for this rank. ==Only Blue and Yellow are supported==",
                 new AcceptableEnumList<ToolItemType>(ToolItemType.Blue, ToolItemType.Yellow)));
             
             _topRightToolSlotRequiredRank = ConfigFile.Bind("Global", "TopRightToolSlot_RequiredRank", 3,
                 new ConfigDescription("Rank at which the top-right tool slot is available (-1 to disable).", new AcceptableValueList<int>(-1,1,2,3)));
-            _topRightToolSlotRequiresUnlocking = ConfigFile.Bind("Global", "TopRightToolSlot_RequiresUnlocking", true, "Whether or not to require spending a memory locket to unluck this slot.");
+            _topRightToolSlotRequiresUnlocking = ConfigFile.Bind("Global", "TopRightToolSlot_RequiresUnlocking", true, "Whether or not to require spending a memory locket to unlock this slot.");
             _topRightToolSlotColor = ConfigFile.Bind("Global", "TopRightToolSlot_Color", ToolItemType.Yellow,
                 new ConfigDescription("The tool slot color for this rank. ==Only Blue and Yellow are supported==", new AcceptableEnumList<ToolItemType>(ToolItemType.Blue, ToolItemType.Yellow)));
 
