@@ -21,7 +21,7 @@ namespace BetterBeastCrest.Domain.Config
         
         private static readonly FieldInfo? _defaultValueConfigField = typeof(ConfigEntryBase).GetField("<DefaultValue>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!;
         
-        private const int CURRENT_CONFIG_VERSION = 3;
+        private const int CURRENT_CONFIG_VERSION = 4;
         private ConfigEntry<int> _configVersion;
         
         public readonly ConfigFile ConfigFile;
@@ -29,7 +29,9 @@ namespace BetterBeastCrest.Domain.Config
         // Global settings
         private ConfigEntry<CrestType> _downAttackCrestType;
         
-        private ConfigEntry<ToolItemType> _centerToolSlotColor;
+        private ConfigEntry<ToolItemType> _topCenterToolSlotColor;
+        private ConfigEntry<ToolItemType> _middleCenterToolSlotColor;
+        private ConfigEntry<ToolItemType> _bottomCenterToolSlotColor;
         
         private ConfigEntry<int> _topLeftToolSlotRequiredRank;
         private ConfigEntry<int> _topRightToolSlotRequiredRank;
@@ -58,8 +60,10 @@ namespace BetterBeastCrest.Domain.Config
         private ConfigEntry<float> _rageDuration3;
         private ConfigEntry<int> _rageDamageMultiplier3;
         private ConfigEntry<float> _rageAttackSpeedPercent3;
-        
-        public ToolItemType CenterToolSlotColor => _centerToolSlotColor.Value;
+
+        public ToolItemType TopCenterToolSlotColor => _topCenterToolSlotColor.Value;
+        public ToolItemType MiddleCenterToolSlotColor => _middleCenterToolSlotColor.Value;
+        public ToolItemType BottomCenterToolSlotColor => _bottomCenterToolSlotColor.Value;
         public CrestType DownAttackType => _downAttackCrestType.Value;
 
         public CrestStats CrestDefault { get; } = new CrestStatsNoConfig(0, 3, 5.0f, 1.25f, 0.32f);
@@ -96,17 +100,19 @@ namespace BetterBeastCrest.Domain.Config
 
         private void LoadConfig()
         {
-            _centerToolSlotColor = ConfigFile.Bind("Global", "CenterToolSlotColor", ToolItemType.Skill, "Specify the type of the center most tool slot. It is Skill in the base game, but you can change that here.");
+            _topCenterToolSlotColor = ConfigFile.Bind("Global", "TopCenterToolSlotColor", ToolItemType.Red, "Specify the type of the top center tool slot. It is Red in the base game, but you can change that here.");
+            _middleCenterToolSlotColor = ConfigFile.Bind("Global", "MiddleCenterToolSlotColor", ToolItemType.Skill, "Specify the type of the centermost tool slot. It is Skill in the base game, but you can change that here.");
+            _bottomCenterToolSlotColor = ConfigFile.Bind("Global", "BottomCenterToolSlotColor", ToolItemType.Red, "Specify the type of the bottom center tool slot. It is Red in the base game, but you can change that here.");
             _downAttackCrestType = ConfigFile.Bind("Global", "DownAttackType", CrestType.Beast, "Specify the down attack to be used with the beast crest.");
             
             _topLeftToolSlotRequiredRank = ConfigFile.Bind("Global", "TopLeftToolSlot_RequiredRank", 2,
-                new ConfigDescription("Rank at which the top-left tool slot is available (-1 to disable).", new AcceptableValueList<int>(-1,1,2,3)));
+                new ConfigDescription("Rank at which the new top-left tool slot is available (-1 to disable).", new AcceptableValueList<int>(-1,1,2,3)));
             _topLeftToolSlotRequiresUnlocking = ConfigFile.Bind("Global", "TopLeftToolSlot_RequiresUnlocking", true, "Whether or not to require spending a memory locket to unlock this slot.");
             _topLeftToolSlotColor = ConfigFile.Bind("Global", "TopLeftToolSlot_Color", ToolItemType.Blue, new ConfigDescription("The tool slot color for this rank. ==Only Blue and Yellow are supported==",
                 new AcceptableEnumList<ToolItemType>(ToolItemType.Blue, ToolItemType.Yellow)));
             
             _topRightToolSlotRequiredRank = ConfigFile.Bind("Global", "TopRightToolSlot_RequiredRank", 3,
-                new ConfigDescription("Rank at which the top-right tool slot is available (-1 to disable).", new AcceptableValueList<int>(-1,1,2,3)));
+                new ConfigDescription("Rank at which the new top-right tool slot is available (-1 to disable).", new AcceptableValueList<int>(-1,1,2,3)));
             _topRightToolSlotRequiresUnlocking = ConfigFile.Bind("Global", "TopRightToolSlot_RequiresUnlocking", true, "Whether or not to require spending a memory locket to unlock this slot.");
             _topRightToolSlotColor = ConfigFile.Bind("Global", "TopRightToolSlot_Color", ToolItemType.Yellow,
                 new ConfigDescription("The tool slot color for this rank. ==Only Blue and Yellow are supported==", new AcceptableEnumList<ToolItemType>(ToolItemType.Blue, ToolItemType.Yellow)));
@@ -219,6 +225,9 @@ namespace BetterBeastCrest.Domain.Config
 
             if (existingVersion < 3)
                 UpgradeToVersion3();
+
+            if (existingVersion < 4)
+                UpgradeToVersion4();
             
             _defaultValueConfigField?.SetValue(_configVersion, CURRENT_CONFIG_VERSION);
             _configVersion.Value = CURRENT_CONFIG_VERSION;
@@ -252,6 +261,13 @@ namespace BetterBeastCrest.Domain.Config
             ConfigFile.Remove(oldDurationIncrease2.Definition);
             _rageDuration3.Value = CrestDefault.RageDuration * (1f + (oldDurationIncrease3.Value / 100f));
             ConfigFile.Remove(oldDurationIncrease3.Definition);
+        }
+        
+        private void UpgradeToVersion4()
+        {
+            var oldCenterSlotColor = ConfigFile.Bind("Global", "CenterToolSlotColor", ToolItemType.Skill, "");
+            _middleCenterToolSlotColor.Value = oldCenterSlotColor.Value;
+            ConfigFile.Remove(oldCenterSlotColor.Definition);
         }
 
         private void MigrateToolSlot(string oldSection, ExtraToolSlotPosition position)

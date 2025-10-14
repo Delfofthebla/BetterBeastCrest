@@ -57,7 +57,7 @@ namespace BetterBeastCrest.Services
         {
             Plugin.Log.LogInfo("Making Beast Crest Rank 1 Changes");
 
-            ModifyCenterToolSlotIfNecessary();
+            ModifyCenterToolSlotsIfNecessary();
             AddExtraToolSlotsIfNecessary(Plugin.ModConfig.Crest1.ExtraToolSlots);
 
             var description = BuildDescription("Rank 1", Plugin.ModConfig.CrestDefault, Plugin.ModConfig.Crest1);
@@ -115,44 +115,52 @@ namespace BetterBeastCrest.Services
             }
         }
 
-        private static void ModifyCenterToolSlotIfNecessary()
+        private static void ModifyCenterToolSlotsIfNecessary()
         {
-            var type = Plugin.ModConfig.CenterToolSlotColor;
-            if (type == ToolItemType.Skill)
-                return;
-
             var original = Gameplay.WarriorCrest.Slots;
             var newArray = new ToolCrest.SlotInfo[original.Length];
             Array.Copy(original, newArray, original.Length);
 
-            for (var i = 0; i < original.Length; i++)
+            if (Plugin.ModConfig.TopCenterToolSlotColor != ToolItemType.Red)
             {
-                var slot = original[i];
-                if (slot.Type != ToolItemType.Skill)
-                    continue;
-
-                var replacementSlot = new ToolCrest.SlotInfo
-                {
-                    Type = type,
-                    AttackBinding = slot.AttackBinding,
-                    IsLocked = false,
-                    Position = slot.Position,
-                    NavUpIndex = slot.NavUpIndex,
-                    NavDownIndex = slot.NavDownIndex,
-                    NavLeftIndex = slot.NavLeftIndex,
-                    NavRightIndex = slot.NavRightIndex,
-
-                    NavUpFallbackIndex = slot.NavUpFallbackIndex,
-                    NavDownFallbackIndex = slot.NavDownFallbackIndex,
-                    NavLeftFallbackIndex = slot.NavLeftFallbackIndex,
-                    NavRightFallbackIndex = slot.NavRightFallbackIndex
-                };
-                newArray[i] = replacementSlot;
+                var replaceIndex = SlotUtils.GetTopCenterIndex(original, ToolItemType.Red);
+                newArray[replaceIndex] = CloneToSlotWithType(original[replaceIndex], Plugin.ModConfig.TopCenterToolSlotColor);
+                Plugin.Log.LogInfo($"Set Beast Crest Top Center tool slot to {Plugin.ModConfig.TopCenterToolSlotColor}");
             }
-
-            Plugin.Log.LogInfo($"Modified Beast Crest Rank 1 Center tool slot to {type}");
+            
+            if (Plugin.ModConfig.MiddleCenterToolSlotColor != ToolItemType.Skill)
+            {
+                var replaceIndex = SlotUtils.GetMiddleCenterIndex(original, ToolItemType.Skill);
+                newArray[replaceIndex] = CloneToSlotWithType(original[replaceIndex], Plugin.ModConfig.MiddleCenterToolSlotColor);
+                Plugin.Log.LogInfo($"Set Beast Crest Top Center tool slot to {Plugin.ModConfig.MiddleCenterToolSlotColor}");
+            }
+            
+            if (Plugin.ModConfig.BottomCenterToolSlotColor != ToolItemType.Red)
+            {
+                var replaceIndex = SlotUtils.GetBottomCenterIndex(original, ToolItemType.Red);
+                newArray[replaceIndex] = CloneToSlotWithType(original[replaceIndex], Plugin.ModConfig.BottomCenterToolSlotColor);
+                Plugin.Log.LogInfo($"Set Beast Crest Top Center tool slot to {Plugin.ModConfig.BottomCenterToolSlotColor}");
+            }
+            
             _slotsField.SetValue(Gameplay.WarriorCrest, newArray);
         }
+
+        private static ToolCrest.SlotInfo CloneToSlotWithType(ToolCrest.SlotInfo existingSlot, ToolItemType type) => new ToolCrest.SlotInfo
+        {
+            Type = type,
+            AttackBinding = existingSlot.AttackBinding,
+            IsLocked = existingSlot.IsLocked,
+            Position = existingSlot.Position,
+            NavUpIndex = existingSlot.NavUpIndex,
+            NavDownIndex = existingSlot.NavDownIndex,
+            NavLeftIndex = existingSlot.NavLeftIndex,
+            NavRightIndex = existingSlot.NavRightIndex,
+
+            NavUpFallbackIndex = existingSlot.NavUpFallbackIndex,
+            NavDownFallbackIndex = existingSlot.NavDownFallbackIndex,
+            NavLeftFallbackIndex = existingSlot.NavLeftFallbackIndex,
+            NavRightFallbackIndex = existingSlot.NavRightFallbackIndex
+        };
 
         private static void AddExtraToolSlotsIfNecessary(IReadOnlyList<ExtraToolSlot> extraSlots)
         {
